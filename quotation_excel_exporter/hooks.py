@@ -1,5 +1,3 @@
-# hooks.py
-
 app_name = "quotation_excel_exporter"
 app_title = "Quotation Excel Exporter"
 app_publisher = "Your Name"
