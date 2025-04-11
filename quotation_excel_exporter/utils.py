@@ -18,10 +18,12 @@ def export_excel_api(quotation_name):
     font = Font(name="Times New Roman", size=13)
     currency_format = '#,##0.00" đ"'
 
+    # Customer name
     cell = ws["B9"]
     cell.value = customer.customer_name or ""
     cell.font = font
 
+    # Phone from Contact
     contact_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -38,6 +40,7 @@ def export_excel_api(quotation_name):
     phone_cell.font = font
     phone_cell.alignment = Alignment(horizontal="left", vertical="center")
 
+    # Address from Address doctype
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -49,29 +52,32 @@ def export_excel_api(quotation_name):
         address = frappe.get_doc("Address", address_name)
         address_line1 = address.address_line1 or ""
 
-    cell = ws["B10"]
-    cell.value = address_line1
-    cell.font = font
+    ws["B10"] = address_line1
+    ws["B10"].font = font
 
+    # Items
     start_row = 14
     for i, item in enumerate(quotation.items):
         row = start_row + i
         ws[f"A{row}"] = i + 1
         ws[f"A{row}"].font = font
 
+        # Merge B:D for item_name
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
         cell = ws.cell(row=row, column=2)
         cell.value = item.item_name
         cell.font = font
         cell.alignment = Alignment(wrap_text=True, vertical="top")
-       # Merge E:F if not already merged
-    ef_range = f"E{row}:F{row}"
-    if ef_range not in [str(m) for m in ws.merged_cells.ranges]:
-        ws.merge_cells(ef_range)
-    # Set value and formatting for the merged cell E:F
-    ws[f"E{row}"] = item.size or ""
-    ws[f"E{row}"].font = font
-    ws[f"E{row}"].alignment = Alignment(wrap_text=True, vertical="top")
+
+        # Merge E:F for size
+        ef_range = f"E{row}:F{row}"
+        if ef_range not in [str(m) for m in ws.merged_cells.ranges]:
+            ws.merge_cells(ef_range)
+
+        cell_desc = ws.cell(row=row, column=5)
+        cell_desc.value = item.size or ""
+        cell_desc.font = font
+        cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
 
         ws[f"G{row}"] = item.item_code
         ws[f"G{row}"].font = font
@@ -103,6 +109,7 @@ def export_excel_api(quotation_name):
             except:
                 pass
 
+    # Total
     for r in range(15, 19):
         cell = ws.cell(row=r, column=14)
         cell.value = quotation.total if r in [15, 18] else 0
