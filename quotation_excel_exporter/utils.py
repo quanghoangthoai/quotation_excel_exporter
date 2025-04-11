@@ -17,6 +17,7 @@ def export_excel_api(quotation_name):
     ws = wb.active
 
     font = Font(name="Times New Roman", size=13)
+    currency_format = '#,##0" đ"'
 
     # Customer name
     cell = ws["B9"]
@@ -70,7 +71,7 @@ def export_excel_api(quotation_name):
         cell.font = font
         cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-        ws[f"E{row}"] = item.size or ""
+        ws[f"E{row}"] = item.description or ""
         ws[f"E{row}"].font = font
         ws[f"G{row}"] = item.item_code
         ws[f"G{row}"].font = font
@@ -78,10 +79,12 @@ def export_excel_api(quotation_name):
         ws[f"H{row}"].font = font
         ws[f"L{row}"] = item.rate or 0
         ws[f"L{row}"].font = font
+
         ws[f"N{row}"] = item.amount or (item.qty * item.rate)
         ws[f"N{row}"].font = font
+        ws[f"N{row}"].number_format = currency_format
 
-        # Insert image into I:J if available
+        # Insert image into I:J, bigger size
         if item.image:
             try:
                 image_path = ""
@@ -95,17 +98,19 @@ def export_excel_api(quotation_name):
 
                 if os.path.exists(image_path):
                     img = XLImage(image_path)
-                    img.width = 70
-                    img.height = 70
+                    img.width = 100
+                    img.height = 100
                     ws.add_image(img, f"I{row}")
+                    ws.row_dimensions[row].height = 80
             except:
-                pass  # Bỏ qua nếu có lỗi ảnh
+                pass
 
-    # Tổng cộng: Ghi vào cột N (column 14)
-    for r in range(15, 29):
+    # Tổng cộng: Ghi vào cột N (column 14) dòng 15 → 18
+    for r in range(15, 19):
         cell = ws.cell(row=r, column=14)
         cell.value = quotation.total if r in [15, 18] else 0
         cell.font = font
+        cell.number_format = currency_format
 
     # Xuất file về trình duyệt
     output = io.BytesIO()
