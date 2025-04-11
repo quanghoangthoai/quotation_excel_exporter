@@ -64,16 +64,14 @@ def export_excel_api(quotation_name):
         cell.value = item.item_name
         cell.font = font
         cell.alignment = Alignment(wrap_text=True, vertical="top")
-
-        # Kiểm tra trước khi merge E:F
-        ef_range = f"E{row}:F{row}"
-        if ef_range not in [str(m) for m in ws.merged_cells.ranges]:
-            ws.merge_cells(ef_range)
-
-        cell_desc = ws.cell(row=row, column=5)
-        cell_desc.value = getattr(item, "size", "") or ""
-        cell_desc.font = font
-        cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
+       # Merge E:F if not already merged
+    ef_range = f"E{row}:F{row}"
+    if ef_range not in [str(m) for m in ws.merged_cells.ranges]:
+        ws.merge_cells(ef_range)
+    # Set value and formatting for the merged cell E:F
+    ws[f"E{row}"] = item.size or ""
+    ws[f"E{row}"].font = font
+    ws[f"E{row}"].alignment = Alignment(wrap_text=True, vertical="top")
 
         ws[f"G{row}"] = item.item_code
         ws[f"G{row}"].font = font
