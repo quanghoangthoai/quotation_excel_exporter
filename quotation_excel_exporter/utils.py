@@ -68,7 +68,7 @@ def export_excel_api(quotation_name):
         # Gộp E:F và ghi item.size vào E
         ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
         cell_desc = ws.cell(row=row, column=5)  # Cột E
-        cell_desc.value = getattr(item, "size", "") or ""
+        cell_desc.value = item.size or ""
         cell_desc.font = font
         cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
 
