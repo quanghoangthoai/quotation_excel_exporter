@@ -12,29 +12,36 @@ def export_excel_api(quotation_name):
     wb = load_workbook(file_path)
     ws = wb.active
 
-    # Thông tin khách hàng
+    # Ghi tên khách hàng
     ws["B9"] = customer.customer_name or ""
-    ws["I9"] = customer.phone or ""
 
-    # Lấy địa chỉ khách hàng
-    address_links = frappe.get_all("Dynamic Link", filters={
+    # Lấy số điện thoại từ Contact
+    contact_name = frappe.db.get_value("Dynamic Link", {
+        "link_doctype": "Customer",
+        "link_name": customer.name,
+        "parenttype": "Contact"
+    }, "parent")
+
+    contact_mobile = ""
+    if contact_name:
+        contact = frappe.get_doc("Contact", contact_name)
+        contact_mobile = contact.mobile_no or contact.phone or ""
+
+    ws["I9"] = contact_mobile
+
+    # Lấy địa chỉ (address_display)
+    address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
         "parenttype": "Address"
-    }, fields=["parent"])
+    }, "parent")
 
-    if address_links:
-        address_doc = frappe.get_doc("Address", address_links[0].parent)
-        full_address = ", ".join(filter(None, [
-            address_doc.address_line1,
-            address_doc.address_line2,
-            address_doc.city,
-            address_doc.state,
-            address_doc.country
-        ]))
-        ws["B10"] = full_address
-    else:
-        ws["B10"] = ""
+    address_display = ""
+    if address_name:
+        address = frappe.get_doc("Address", address_name)
+        address_display = address.get("address_display") or ""
+
+    ws["B10"] = address_display
 
     # Ghi sản phẩm vào Excel
     start_row = 14
