@@ -59,28 +59,32 @@ def export_excel_api(quotation_name):
     start_row = 14
     for i, item in enumerate(quotation.items):
         row = start_row + i
+
         ws[f"A{row}"] = i + 1
         ws[f"A{row}"].font = font
+        ws[f"A{row}"].alignment = Alignment(horizontal="center", vertical="top")
 
         # Merge B:D for item_name
-        ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
-        cell = ws.cell(row=row, column=2)
-        cell.value = item.item_name
-        cell.font = font
-        cell.alignment = Alignment(wrap_text=True, vertical="top")
+        bd_range = f"B{row}:D{row}"
+        for m in list(ws.merged_cells.ranges):
+            if bd_range == str(m):
+                ws.unmerge_cells(bd_range)
+        ws.merge_cells(bd_range)
+        cell_name = ws.cell(row=row, column=2)
+        cell_name.value = item.item_name
+        cell_name.font = font
+        cell_name.alignment = Alignment(wrap_text=True, vertical="top")
 
-        # Ghi item.size vào E:F (unmerge -> gán -> merge lại)
+        # Merge E:F for size
         ef_range = f"E{row}:F{row}"
         for m in list(ws.merged_cells.ranges):
             if ef_range == str(m):
                 ws.unmerge_cells(ef_range)
-
+        ws.merge_cells(ef_range)
         cell_desc = ws.cell(row=row, column=5)
         cell_desc.value = item.size or ""
         cell_desc.font = font
         cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
-
-        ws.merge_cells(ef_range)
 
         ws[f"G{row}"] = item.item_code
         ws[f"G{row}"].font = font
@@ -91,6 +95,13 @@ def export_excel_api(quotation_name):
         ws[f"N{row}"] = item.amount or (item.qty * item.rate)
         ws[f"N{row}"].font = font
         ws[f"N{row}"].number_format = currency_format
+
+        # Merge I:J regardless, then insert image if exists
+        ij_range = f"I{row}:J{row}"
+        for m in list(ws.merged_cells.ranges):
+            if ij_range == str(m):
+                ws.unmerge_cells(ij_range)
+        ws.merge_cells(ij_range)
 
         if item.image:
             try:
@@ -112,10 +123,12 @@ def export_excel_api(quotation_name):
             except:
                 pass
 
-    # Total
-    for r in range(15, 19):
+    # Tính dòng bắt đầu của phần Tổng cộng
+    total_row = start_row + len(quotation.items) + 1
+    for i in range(4):
+        r = total_row + i
         cell = ws.cell(row=r, column=14)
-        cell.value = quotation.total if r in [15, 18] else 0
+        cell.value = quotation.total if i in [0, 3] else 0
         cell.font = font
         cell.number_format = currency_format
 
