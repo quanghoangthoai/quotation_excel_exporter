@@ -70,7 +70,7 @@ def export_excel_api(quotation_name):
         cell.font = font
         cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-        ws[f"E{row}"] = item.description or ""
+        ws[f"E{row}"] = item.size or ""
         ws[f"E{row}"].font = font
         ws[f"G{row}"] = item.item_code
         ws[f"G{row}"].font = font
@@ -102,9 +102,9 @@ def export_excel_api(quotation_name):
                 pass  # Bỏ qua nếu có lỗi ảnh
 
     # Tổng cộng: Ghi vào cột N (column 14)
-    for r in range(17, 21):
+    for r in range(15, 29):
         cell = ws.cell(row=r, column=14)
-        cell.value = quotation.total if r in [17, 20] else 0
+        cell.value = quotation.total if r in [15, 18] else 0
         cell.font = font
 
     # Xuất file về trình duyệt
