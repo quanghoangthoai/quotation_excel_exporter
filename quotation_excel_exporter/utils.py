@@ -11,20 +11,17 @@ def export_excel_api(quotation_name):
     quotation = frappe.get_doc("Quotation", quotation_name)
     customer = frappe.get_doc("Customer", quotation.party_name)
 
-    # Load template
     file_path = frappe.get_site_path("public", "files", "mẫu báo giá.xlsx")
     wb = load_workbook(file_path)
     ws = wb.active
 
     font = Font(name="Times New Roman", size=13)
-    currency_format = '#,##0" đ"'
+    currency_format = '#,##0.00" đ"'
 
-    # Customer name
     cell = ws["B9"]
     cell.value = customer.customer_name or ""
     cell.font = font
 
-    # Get phone from Contact → J9
     contact_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -41,7 +38,6 @@ def export_excel_api(quotation_name):
     phone_cell.font = font
     phone_cell.alignment = Alignment(horizontal="left", vertical="center")
 
-    # Get address → address_line1
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -57,34 +53,35 @@ def export_excel_api(quotation_name):
     cell.value = address_line1
     cell.font = font
 
-    # Insert quotation items
     start_row = 14
     for i, item in enumerate(quotation.items):
         row = start_row + i
         ws[f"A{row}"] = i + 1
         ws[f"A{row}"].font = font
 
-        # Merge B:C:D for item_name with wrap text
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
         cell = ws.cell(row=row, column=2)
         cell.value = item.item_name
         cell.font = font
         cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-        ws[f"E{row}"] = item.description or ""
-        ws[f"E{row}"].font = font
+        # Sử dụng item.size thay vì description
+        ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
+        cell_desc = ws.cell(row=row, column=5)
+        cell_desc.value = item.size or ""
+        cell_desc.font = font
+        cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
+
         ws[f"G{row}"] = item.item_code
         ws[f"G{row}"].font = font
         ws[f"H{row}"] = item.qty
         ws[f"H{row}"].font = font
         ws[f"L{row}"] = item.rate or 0
         ws[f"L{row}"].font = font
-
         ws[f"N{row}"] = item.amount or (item.qty * item.rate)
         ws[f"N{row}"].font = font
         ws[f"N{row}"].number_format = currency_format
 
-        # Insert image into I:J, bigger size
         if item.image:
             try:
                 image_path = ""
@@ -105,14 +102,12 @@ def export_excel_api(quotation_name):
             except:
                 pass
 
-    # Tổng cộng: Ghi vào cột N (column 14) dòng 15 → 18
     for r in range(15, 19):
         cell = ws.cell(row=r, column=14)
         cell.value = quotation.total if r in [15, 18] else 0
         cell.font = font
         cell.number_format = currency_format
 
-    # Xuất file về trình duyệt
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
