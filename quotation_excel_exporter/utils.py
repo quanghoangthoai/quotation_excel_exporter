@@ -69,18 +69,18 @@ def export_excel_api(quotation_name):
         cell.font = font
         cell.alignment = Alignment(wrap_text=True, vertical="top")
 
-        # # Ghi item.size vào E:F (unmerge -> gán -> merge lại)
-        # ef_range = f"E{row}:F{row}"
-        # for m in list(ws.merged_cells.ranges):
-        #     if ef_range == str(m):
-        #         ws.unmerge_cells(ef_range)
+        # Ghi item.size vào E:F (unmerge -> gán -> merge lại)
+        ef_range = f"E{row}:F{row}"
+        for m in list(ws.merged_cells.ranges):
+            if ef_range == str(m):
+                ws.unmerge_cells(ef_range)
 
-        # cell_desc = ws.cell(row=row, column=5)
-        # cell_desc.value = item.size or ""
-        # cell_desc.font = font
-        # cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
+        cell_desc = ws.cell(row=row, column=5)
+        cell_desc.value = item.size or ""
+        cell_desc.font = font
+        cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
 
-        # ws.merge_cells(ef_range)
+        ws.merge_cells(ef_range)
 
         ws[f"G{row}"] = item.item_code
         ws[f"G{row}"].font = font
