@@ -80,11 +80,11 @@ def export_excel_api(quotation_name):
             except:
                 pass  # Bỏ qua nếu có lỗi ảnh
 
-    # Tổng cộng
-    ws["C17"] = quotation.total or 0
-    ws["C18"] = 0
-    ws["C19"] = 0
-    ws["C20"] = quotation.total or 0
+    # Tổng cộng: Ghi vào cột N (column 14)
+    ws.cell(row=17, column=14).value = quotation.total or 0
+    ws.cell(row=18, column=14).value = 0
+    ws.cell(row=19, column=14).value = 0
+    ws.cell(row=20, column=14).value = quotation.total or 0
 
     # Xuất file về trình duyệt
     output = io.BytesIO()
