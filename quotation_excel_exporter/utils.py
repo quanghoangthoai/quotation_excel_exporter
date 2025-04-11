@@ -4,6 +4,7 @@ import os
 import requests
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import Alignment, Font
 
 @frappe.whitelist()
 def export_excel_api(quotation_name):
@@ -15,10 +16,14 @@ def export_excel_api(quotation_name):
     wb = load_workbook(file_path)
     ws = wb.active
 
-    # Customer name
-    ws["B9"] = customer.customer_name or ""
+    font = Font(name="Times New Roman", size=13)
 
-    # Get phone from Contact
+    # Customer name
+    cell = ws["B9"]
+    cell.value = customer.customer_name or ""
+    cell.font = font
+
+    # Get phone from Contact → J9
     contact_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -29,36 +34,52 @@ def export_excel_api(quotation_name):
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
         contact_mobile = contact.mobile_no or contact.phone or ""
-    ws["I9"] = contact_mobile
 
-    # Get address from Address
+    phone_cell = ws["J9"]
+    phone_cell.value = contact_mobile
+    phone_cell.font = font
+    phone_cell.alignment = Alignment(horizontal="left", vertical="center")
+
+    # Get address → address_line1
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
         "parenttype": "Address"
     }, "parent")
 
-    address_display = ""
+    address_line1 = ""
     if address_name:
         address = frappe.get_doc("Address", address_name)
-        address_display = address.get("address_display") or ""
-    ws["B10"] = address_display
+        address_line1 = address.address_line1 or ""
+
+    cell = ws["B10"]
+    cell.value = address_line1
+    cell.font = font
 
     # Insert quotation items
     start_row = 14
     for i, item in enumerate(quotation.items):
         row = start_row + i
         ws[f"A{row}"] = i + 1
+        ws[f"A{row}"].font = font
 
-        # Merge B:C:D for item_name
+        # Merge B:C:D for item_name with wrap text
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
-        ws.cell(row=row, column=2).value = item.item_name
+        cell = ws.cell(row=row, column=2)
+        cell.value = item.item_name
+        cell.font = font
+        cell.alignment = Alignment(wrap_text=True, vertical="top")
 
         ws[f"E{row}"] = item.description or ""
+        ws[f"E{row}"].font = font
         ws[f"G{row}"] = item.item_code
+        ws[f"G{row}"].font = font
         ws[f"H{row}"] = item.qty
+        ws[f"H{row}"].font = font
         ws[f"L{row}"] = item.rate or 0
+        ws[f"L{row}"].font = font
         ws[f"N{row}"] = item.amount or (item.qty * item.rate)
+        ws[f"N{row}"].font = font
 
         # Insert image into I:J if available
         if item.image:
@@ -81,10 +102,10 @@ def export_excel_api(quotation_name):
                 pass  # Bỏ qua nếu có lỗi ảnh
 
     # Tổng cộng: Ghi vào cột N (column 14)
-    ws.cell(row=17, column=14).value = quotation.total or 0
-    ws.cell(row=18, column=14).value = 0
-    ws.cell(row=19, column=14).value = 0
-    ws.cell(row=20, column=14).value = quotation.total or 0
+    for r in range(17, 21):
+        cell = ws.cell(row=r, column=14)
+        cell.value = quotation.total if r in [17, 20] else 0
+        cell.font = font
 
     # Xuất file về trình duyệt
     output = io.BytesIO()
