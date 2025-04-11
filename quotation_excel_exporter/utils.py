@@ -40,7 +40,7 @@ def export_excel_api(quotation_name):
     phone_cell.font = font
     phone_cell.alignment = Alignment(horizontal="left", vertical="center")
 
-    # Address from Address doctype
+    # Address
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -60,9 +60,10 @@ def export_excel_api(quotation_name):
     for i, item in enumerate(quotation.items):
         row = start_row + i
 
-        ws[f"A{row}"] = i + 1
-        ws[f"A{row}"].font = font
-        ws[f"A{row}"].alignment = Alignment(horizontal="center", vertical="top")
+        # Tạo ô chủ động bằng ws.cell() để đảm bảo luôn tồn tại
+        cell_a = ws.cell(row=row, column=1, value=i + 1)
+        cell_a.font = font
+        cell_a.alignment = Alignment(horizontal="center", vertical="top")
 
         # Merge B:D for item_name
         bd_range = f"B{row}:D{row}"
@@ -86,15 +87,12 @@ def export_excel_api(quotation_name):
         cell_desc.font = font
         cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
 
-        ws[f"G{row}"] = item.item_code
-        ws[f"G{row}"].font = font
-        ws[f"H{row}"] = item.qty
-        ws[f"H{row}"].font = font
-        ws[f"L{row}"] = item.rate or 0
-        ws[f"L{row}"].font = font
-        ws[f"N{row}"] = item.amount or (item.qty * item.rate)
-        ws[f"N{row}"].font = font
-        ws[f"N{row}"].number_format = currency_format
+        ws.cell(row=row, column=7, value=item.item_code).font = font  # G
+        ws.cell(row=row, column=8, value=item.qty).font = font        # H
+        ws.cell(row=row, column=12, value=item.rate or 0).font = font  # L
+        amt_cell = ws.cell(row=row, column=14, value=item.amount or (item.qty * item.rate))  # N
+        amt_cell.font = font
+        amt_cell.number_format = currency_format
 
         # Merge I:J regardless, then insert image if exists
         ij_range = f"I{row}:J{row}"
@@ -122,8 +120,10 @@ def export_excel_api(quotation_name):
                     ws.row_dimensions[row].height = 80
             except:
                 pass
+        else:
+            ws.row_dimensions[row].height = 20  # default height
 
-    # Tính dòng bắt đầu của phần Tổng cộng
+    # Tổng cộng sau danh sách sản phẩm
     total_row = start_row + len(quotation.items) + 1
     for i in range(4):
         r = total_row + i
