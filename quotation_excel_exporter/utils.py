@@ -82,10 +82,9 @@ def export_excel_api(quotation_name):
             if ef_range == str(m):
                 ws.unmerge_cells(ef_range)
         ws.merge_cells(ef_range)
-        cell_desc = ws.cell(row=row, column=5)
-        cell_desc.value = item.size or ""
-        cell_desc.font = font
-        cell_desc.alignment = Alignment(wrap_text=True, vertical="top")
+        # Fix: Set value before merging cells
+        ws.cell(row=row, column=5, value=item.size or "").font = font
+        ws.cell(row=row, column=5).alignment = Alignment(wrap_text=True, vertical="top")
 
         ws.cell(row=row, column=7, value=item.item_code).font = font  # G
         ws.cell(row=row, column=8, value=item.qty).font = font        # H
