@@ -167,14 +167,12 @@ def export_excel_api(quotation_name):
     cell = ws.cell(row=total_row + 3, column=2)
     cell.value = "Tổng tiền thanh toán (A+B-C)"
     ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
-
-ws.cell(row=total_row + 3, column=14, value=quotation.total)
-
-
+    ws.cell(row=total_row + 3, column=14, value=quotation.total)
+    
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
-
+    
     frappe.local.response.filename = f"Bao_gia_{quotation.name}.xlsx"
     frappe.local.response.filecontent = output.read()
     frappe.local.response.type = "binary"
