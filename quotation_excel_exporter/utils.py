@@ -15,7 +15,20 @@ def export_excel_api(quotation_name):
     file_path = frappe.get_site_path("public", "files", "mẫu báo giá.xlsx")
     wb = load_workbook(file_path)
     ws = wb.active
+ # Đường dẫn tới logo
+    logo_path = frappe.get_site_path("public", "files", "logo.jpg")
+    if os.path.exists(logo_path):
+        logo_img = XLImage(logo_path)
+        logo_img.width = 180  # Điều chỉnh kích thước ngang
+        logo_img.height = 60  # Điều chỉnh kích thước dọc
 
+    # Chèn vào đúng ô A1
+    ws.add_image(logo_img, "A1")
+
+    # Tuỳ chọn: chỉnh chiều cao hàng nếu cần để logo không bị cắt
+    ws.row_dimensions[1].height = 40
+    ws.row_dimensions[2].height = 30
+    ws.row_dimensions[3].height = 30
     # Fill customer info
     ws["B9"] = customer.customer_name or ""
     
