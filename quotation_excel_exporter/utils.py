@@ -119,9 +119,11 @@ def export_excel_api(quotation_name):
 
     total_row = template_row + num_items
 
+    # Safely unmerge and then write values
     for i in range(4):
-        for col in range(1, 15):
-            ws.cell(row=total_row + i, column=col).value = None
+        for merged_range in list(ws.merged_cells.ranges):
+            if merged_range.min_row == total_row + i:
+                ws.unmerge_cells(str(merged_range))
 
     ws.cell(row=total_row, column=1, value="A")
     ws.cell(row=total_row, column=2, value="Tổng cộng")
@@ -138,8 +140,8 @@ def export_excel_api(quotation_name):
     ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=14, value=0)
 
-    ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
     ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
+    ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
     ws.cell(row=total_row + 3, column=14, value=quotation.total)
 
     output = io.BytesIO()
