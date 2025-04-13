@@ -4,7 +4,7 @@ import os
 import requests
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
-from openpyxl.styles import Alignment, Font
+from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
 from copy import copy
 
 @frappe.whitelist()
@@ -17,7 +17,7 @@ def export_excel_api(quotation_name):
     template_ws = wb.active
     ws = wb.create_sheet("Generated")
 
-    # Copy cell content and styles
+    # Copy template exactly including all formatting
     for row in template_ws.iter_rows():
         for cell in row:
             new_cell = ws[cell.coordinate]
@@ -30,7 +30,11 @@ def export_excel_api(quotation_name):
                 new_cell.protection = copy(cell.protection)
                 new_cell.alignment = copy(cell.alignment)
 
-    # Copy row height & column width
+    # Copy merged cells
+    for merged_range in template_ws.merged_cells.ranges:
+        ws.merge_cells(str(merged_range))
+
+    # Copy dimensions
     for row_idx, row in enumerate(template_ws.iter_rows(), start=1):
         if template_ws.row_dimensions[row_idx].height:
             ws.row_dimensions[row_idx].height = template_ws.row_dimensions[row_idx].height
@@ -38,12 +42,25 @@ def export_excel_api(quotation_name):
     for col_letter, dim in template_ws.column_dimensions.items():
         ws.column_dimensions[col_letter].width = dim.width
 
+    # Styles
     font = Font(name="Times New Roman", size=13)
-    currency_format = '#,##0.00" đ"'
+    header_font = Font(name="Times New Roman", size=13, bold=True)
+    currency_format = '#,##0" đ"'  # Changed format to match template
+    center_align = Alignment(horizontal='center', vertical='center')
+    wrap_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    
+    # Borders
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
 
     # Customer info
     ws["B9"] = customer.customer_name or ""
     ws["B9"].font = font
+    ws["B9"].alignment = wrap_align
 
     contact_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
@@ -73,55 +90,66 @@ def export_excel_api(quotation_name):
 
     ws["B10"] = address_line1
     ws["B10"].font = font
+    ws["B10"].alignment = wrap_align
 
-    # Items
+    # Items section
     start_row = 14
     for i, item in enumerate(quotation.items):
         row = start_row + i
 
-        # Item number
-        cell_num = ws.cell(row=row, column=1)
-        cell_num.value = i + 1
+        # STT
+        cell_num = ws.cell(row=row, column=1, value=i + 1)
         cell_num.font = font
-        cell_num.alignment = Alignment(horizontal="center", vertical="top")
+        cell_num.alignment = center_align
+        cell_num.border = thin_border
 
-        # Item name (B:D)
-        for col in range(2, 5):  # B, C, D
-            cell = ws.cell(row=row, column=col)
-            if col == 2:
-                cell.value = item.item_name
-                cell.font = font
-                cell.alignment = Alignment(wrap_text=True, vertical="top")
-            else:
-                cell.value = None
+        # Tên sản phẩm (B:D)
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
+        name_cell = ws.cell(row=row, column=2, value=item.item_name)
+        name_cell.font = font
+        name_cell.alignment = wrap_align
+        name_cell.border = thin_border
 
-        # Size (E:F)
-        for col in range(5, 7):  # E, F
-            cell = ws.cell(row=row, column=col)
-            if col == 5:
-                cell.value = item.size or ""
-                cell.font = font
-                cell.alignment = Alignment(wrap_text=True, vertical="top")
-            else:
-                cell.value = None
+        # Kích thước (E:F)
         ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
+        size_cell = ws.cell(row=row, column=5, value=item.size or "")
+        size_cell.font = font
+        size_cell.alignment = wrap_align
+        size_cell.border = thin_border
 
-        # Regular cells
-        ws.cell(row=row, column=7, value=item.item_code).font = font
-        ws.cell(row=row, column=8, value=item.qty).font = font
-        ws.cell(row=row, column=12, value=item.rate or 0).font = font
+        # Mã hàng
+        code_cell = ws.cell(row=row, column=7, value=item.item_code)
+        code_cell.font = font
+        code_cell.alignment = center_align
+        code_cell.border = thin_border
 
+        # SL
+        qty_cell = ws.cell(row=row, column=8, value=item.qty)
+        qty_cell.font = font
+        qty_cell.alignment = center_align
+        qty_cell.border = thin_border
+
+        # Hình ảnh (I:J)
+        ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
+        img_cell = ws.cell(row=row, column=9)
+        img_cell.border = thin_border
+
+        # Đơn giá
+        rate_cell = ws.cell(row=row, column=12, value=item.rate or 0)
+        rate_cell.font = font
+        rate_cell.alignment = center_align
+        rate_cell.number_format = currency_format
+        rate_cell.border = thin_border
+
+        # Thành tiền
         amt_cell = ws.cell(row=row, column=14)
         amt_cell.value = item.amount or (item.qty * item.rate)
         amt_cell.font = font
+        amt_cell.alignment = center_align
         amt_cell.number_format = currency_format
+        amt_cell.border = thin_border
 
-        # Image cells (I:J)
-        for col in range(9, 11):  # I, J
-            ws.cell(row=row, column=col).value = None
-        ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
-
+        # Handle images
         if item.image:
             try:
                 image_path = ""
@@ -144,20 +172,21 @@ def export_excel_api(quotation_name):
         else:
             ws.row_dimensions[row].height = 20
 
-    # Totals
+    # Totals section
     total_row = start_row + len(quotation.items) + 1
     for i in range(4):
         r = total_row + i
         cell = ws.cell(row=r, column=14)
         cell.value = quotation.total if i in [0, 3] else 0
         cell.font = font
+        cell.alignment = center_align
         cell.number_format = currency_format
+        cell.border = thin_border
 
     # Remove template and set title
     wb.remove(template_ws)
     ws.title = template_ws.title
 
-    # Save to response
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
