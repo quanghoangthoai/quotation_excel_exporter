@@ -1,4 +1,3 @@
-
 import frappe
 import io
 import os
@@ -6,7 +5,6 @@ import requests
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Alignment, Font
-from openpyxl.utils.cell import range_boundaries
 from copy import copy
 
 @frappe.whitelist()
@@ -32,10 +30,6 @@ def export_excel_api(quotation_name):
                 new_cell.protection = copy(cell.protection)
                 new_cell.alignment = copy(cell.alignment)
 
-    # Copy merged cells
-    for merged_range in template_ws.merged_cells.ranges:
-        ws.merge_cells(str(merged_range))
-
     # Copy row height & column width
     for row_idx, row in enumerate(template_ws.iter_rows(), start=1):
         if template_ws.row_dimensions[row_idx].height:
@@ -47,6 +41,7 @@ def export_excel_api(quotation_name):
     font = Font(name="Times New Roman", size=13)
     currency_format = '#,##0.00" đ"'
 
+    # Customer info
     ws["B9"] = customer.customer_name or ""
     ws["B9"].font = font
 
@@ -79,21 +74,40 @@ def export_excel_api(quotation_name):
     ws["B10"] = address_line1
     ws["B10"].font = font
 
+    # Items
     start_row = 14
     for i, item in enumerate(quotation.items):
         row = start_row + i
 
-        ws.cell(row=row, column=1, value=i + 1).font = font
-        ws.cell(row=row, column=1).alignment = Alignment(horizontal="center", vertical="top")
+        # Item number
+        cell_num = ws.cell(row=row, column=1)
+        cell_num.value = i + 1
+        cell_num.font = font
+        cell_num.alignment = Alignment(horizontal="center", vertical="top")
 
+        # Item name (B:D)
+        for col in range(2, 5):  # B, C, D
+            cell = ws.cell(row=row, column=col)
+            if col == 2:
+                cell.value = item.item_name
+                cell.font = font
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+            else:
+                cell.value = None
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
-        ws.cell(row=row, column=2, value=item.item_name).font = font
-        ws.cell(row=row, column=2).alignment = Alignment(wrap_text=True, vertical="top")
 
+        # Size (E:F)
+        for col in range(5, 7):  # E, F
+            cell = ws.cell(row=row, column=col)
+            if col == 5:
+                cell.value = item.size or ""
+                cell.font = font
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+            else:
+                cell.value = None
         ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
-        ws.cell(row=row, column=5, value=item.size or "").font = font
-        ws.cell(row=row, column=5).alignment = Alignment(wrap_text=True, vertical="top")
 
+        # Regular cells
         ws.cell(row=row, column=7, value=item.item_code).font = font
         ws.cell(row=row, column=8, value=item.qty).font = font
         ws.cell(row=row, column=12, value=item.rate or 0).font = font
@@ -103,6 +117,9 @@ def export_excel_api(quotation_name):
         amt_cell.font = font
         amt_cell.number_format = currency_format
 
+        # Image cells (I:J)
+        for col in range(9, 11):  # I, J
+            ws.cell(row=row, column=col).value = None
         ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
 
         if item.image:
@@ -127,6 +144,7 @@ def export_excel_api(quotation_name):
         else:
             ws.row_dimensions[row].height = 20
 
+    # Totals
     total_row = start_row + len(quotation.items) + 1
     for i in range(4):
         r = total_row + i
@@ -135,9 +153,11 @@ def export_excel_api(quotation_name):
         cell.font = font
         cell.number_format = currency_format
 
+    # Remove template and set title
     wb.remove(template_ws)
     ws.title = template_ws.title
 
+    # Save to response
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
