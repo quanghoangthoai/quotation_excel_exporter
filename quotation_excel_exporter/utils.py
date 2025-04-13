@@ -21,9 +21,8 @@ def export_excel_api(quotation_name):
         logo_img = XLImage(logo_path)
         logo_img.width = 180  # Điều chỉnh kích thước ngang
         logo_img.height = 60  # Điều chỉnh kích thước dọc
-
-    # Chèn vào đúng ô A1
-    ws.add_image(logo_img, "A1")
+        # Chèn vào đúng ô A1
+        ws.add_image(logo_img, "A1")
 
     # Tuỳ chọn: chỉnh chiều cao hàng nếu cần để logo không bị cắt
     ws.row_dimensions[1].height = 40
