@@ -57,9 +57,21 @@ def export_excel_api(quotation_name):
         ws["B10"] = address.address_line1 or "N/A"
         ws["B10"].font = font_13
 
-    # Xóa dữ liệu mẫu (nếu có) ở row 14
+    # Xóa dữ liệu mẫu ở row 14, chỉ gán giá trị cho ô đầu tiên của vùng merge
+    template_row = 14
+    merged_ranges = [r for r in ws.merged_cells.ranges if r.min_row == template_row]
     for col in range(1, 15):
-        ws.cell(row=14, column=col).value = None
+        # Kiểm tra xem ô có thuộc vùng merge hay không
+        is_in_merged = False
+        for merged in merged_ranges:
+            if col in range(merged.min_col, merged.max_col + 1):
+                is_in_merged = True
+                # Chỉ gán giá trị cho ô đầu tiên của vùng merge
+                if col == merged.min_col:
+                    ws.cell(row=template_row, column=col).value = None
+                break
+        if not is_in_merged:
+            ws.cell(row=template_row, column=col).value = None
 
     # Chèn thêm hàng nếu có nhiều hơn 1 item
     num_items = len(quotation.items)
