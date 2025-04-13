@@ -16,21 +16,6 @@ def export_excel_api(quotation_name):
     wb = load_workbook(file_path)
     ws = wb.active
 
-    # Store template row for items
-    template_row = 14
-    template_cells = {}
-    
-    # Save template formatting for the item row
-    for col in range(1, 15):  # Columns A to N
-        cell = ws.cell(row=template_row, column=col)
-        template_cells[col] = {
-            'font': copy(cell.font) if cell.font else None,
-            'border': copy(cell.border) if cell.border else None,
-            'fill': copy(cell.fill) if cell.fill else None,
-            'number_format': cell.number_format,
-            'alignment': copy(cell.alignment) if cell.alignment else None
-        }
-
     # Fill customer info
     ws["B9"] = customer.customer_name or ""
     
@@ -54,39 +39,55 @@ def export_excel_api(quotation_name):
         address = frappe.get_doc("Address", address_name)
         ws["B10"] = address.address_line1 or ""
 
-    # Insert/delete rows based on number of items
+    # Store template row formatting
+    template_row = 14
+    template_styles = {}
+    for col in range(1, 15):
+        cell = ws.cell(row=template_row, column=col)
+        template_styles[col] = {
+            'font': copy(cell.font) if cell.font else None,
+            'border': copy(cell.border) if cell.border else None,
+            'fill': copy(cell.fill) if cell.fill else None,
+            'number_format': cell.number_format,
+            'alignment': copy(cell.alignment) if cell.alignment else None
+        }
+
+    # Get merged ranges in template row
+    template_merges = []
+    for merged_range in ws.merged_cells.ranges:
+        if merged_range.min_row == template_row:
+            template_merges.append((
+                merged_range.min_col,
+                merged_range.max_col
+            ))
+
+    # Unmerge template row cells first
+    for merged_range in list(ws.merged_cells.ranges):
+        if merged_range.min_row == template_row:
+            ws.unmerge_cells(str(merged_range))
+
+    # Insert rows for additional items
     num_items = len(quotation.items)
     if num_items > 1:
-        # Insert required number of rows after template row
         ws.insert_rows(template_row + 1, num_items - 1)
-        
-        # Copy merged cell ranges for each new row
-        for i in range(1, num_items):
-            new_row = template_row + i
-            # Copy B:D merge
-            ws.merge_cells(start_row=new_row, start_column=2, end_row=new_row, end_column=4)
-            # Copy E:F merge
-            ws.merge_cells(start_row=new_row, start_column=5, end_row=new_row, end_column=6)
-            # Copy I:J merge
-            ws.merge_cells(start_row=new_row, start_column=9, end_row=new_row, end_column=10)
 
     # Fill items
-    start_row = template_row
     for i, item in enumerate(quotation.items):
-        row = start_row + i
+        row = template_row + i
         
-        # Apply template formatting to all cells in the row
+        # First set all cell values and styles
         for col in range(1, 15):
             cell = ws.cell(row=row, column=col)
-            if template_cells[col]['font']:
-                cell.font = copy(template_cells[col]['font'])
-            if template_cells[col]['border']:
-                cell.border = copy(template_cells[col]['border'])
-            if template_cells[col]['fill']:
-                cell.fill = copy(template_cells[col]['fill'])
-            if template_cells[col]['alignment']:
-                cell.alignment = copy(template_cells[col]['alignment'])
-            cell.number_format = template_cells[col]['number_format']
+            # Apply template styles
+            if template_styles[col]['font']:
+                cell.font = copy(template_styles[col]['font'])
+            if template_styles[col]['border']:
+                cell.border = copy(template_styles[col]['border'])
+            if template_styles[col]['fill']:
+                cell.fill = copy(template_styles[col]['fill'])
+            if template_styles[col]['alignment']:
+                cell.alignment = copy(template_styles[col]['alignment'])
+            cell.number_format = template_styles[col]['number_format']
 
         # Fill data
         ws.cell(row=row, column=1, value=i + 1)  # STT
@@ -98,6 +99,15 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=12, value=item.rate or 0)  # Đơn giá
         ws.cell(row=row, column=13, value=item.discount_percentage or 0)  # CK
         ws.cell(row=row, column=14, value=item.amount or (item.qty * item.rate))  # Thành tiền
+
+        # Then merge cells
+        for min_col, max_col in template_merges:
+            ws.merge_cells(
+                start_row=row,
+                start_column=min_col,
+                end_row=row,
+                end_column=max_col
+            )
 
         # Handle images
         if item.image:
@@ -123,19 +133,25 @@ def export_excel_api(quotation_name):
             ws.row_dimensions[row].height = 20
 
     # Update totals section position
-    total_row = start_row + num_items
+    total_row = template_row + num_items
+    
+    # Move and update totals section
     ws.cell(row=total_row, column=1, value="A")
+    ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=13)
     ws.cell(row=total_row, column=2, value="Tổng cộng")
     ws.cell(row=total_row, column=14, value=quotation.total)
 
     ws.cell(row=total_row + 1, column=1, value="B")
+    ws.merge_cells(start_row=total_row + 1, start_column=2, end_row=total_row + 1, end_column=13)
     ws.cell(row=total_row + 1, column=2, value="Phụ phí")
     ws.cell(row=total_row + 1, column=14, value=0)
 
     ws.cell(row=total_row + 2, column=1, value="C")
+    ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=2, value="Đã thanh toán")
     ws.cell(row=total_row + 2, column=14, value=0)
 
+    ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
     ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
     ws.cell(row=total_row + 3, column=14, value=quotation.total)
 
