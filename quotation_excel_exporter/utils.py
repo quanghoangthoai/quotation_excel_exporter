@@ -115,8 +115,6 @@ def export_excel_api(quotation_name):
                     img.width = 100
                     img.height = 100
                     ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
-                    # Center image between I and J
-                    col_offset = (ws.column_dimensions['J'].width or 10) - (ws.column_dimensions['I'].width or 10)
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 80
                 else:
