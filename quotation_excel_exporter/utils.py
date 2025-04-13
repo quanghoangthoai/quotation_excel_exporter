@@ -27,7 +27,7 @@ def export_excel_api(quotation_name):
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
         contact_mobile = contact.mobile_no or contact.phone or ""
-        ws.cell(row=9, column=9, value=contact_mobile)  # I9
+        ws.cell(row=9, column=9, value=contact_mobile)
         ws.cell(row=9, column=9).alignment = Alignment(horizontal="left", vertical="center")
 
     address_name = frappe.db.get_value("Dynamic Link", {
@@ -139,11 +139,11 @@ def export_excel_api(quotation_name):
     ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=14, value=0)
 
+    # Unmerge the cell first, then write value before merging again
     for merged_range in list(ws.merged_cells.ranges):
-        if merged_range.min_row == total_row + 3:
+        if merged_range.min_row == total_row + 3 and merged_range.min_col == 2:
             ws.unmerge_cells(str(merged_range))
-
-    ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
+    ws.cell(row=total_row + 3, column=2).value = "Tổng tiền thanh toán (A+B-C)"
     ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
     ws.cell(row=total_row + 3, column=14, value=quotation.total)
 
