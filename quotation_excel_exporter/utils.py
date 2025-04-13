@@ -143,31 +143,32 @@ def export_excel_api(quotation_name):
                 ws.row_dimensions[row].height = 20
         else:
             ws.row_dimensions[row].height = 20
-
     # Update totals section position
     total_row = template_row + num_items
     
     # Move and update totals section
+    # A. Tổng cộng
     ws.cell(row=total_row, column=1, value="A")
-    ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=13)
     ws.cell(row=total_row, column=2, value="Tổng cộng")
+    ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=13)
     ws.cell(row=total_row, column=14, value=quotation.total)
 
+    # B. Phụ phí
     ws.cell(row=total_row + 1, column=1, value="B")
-    ws.merge_cells(start_row=total_row + 1, start_column=2, end_row=total_row + 1, end_column=13)
     ws.cell(row=total_row + 1, column=2, value="Phụ phí")
+    ws.merge_cells(start_row=total_row + 1, start_column=2, end_row=total_row + 1, end_column=13)
     ws.cell(row=total_row + 1, column=14, value=0)
 
+    # C. Đã thanh toán
     ws.cell(row=total_row + 2, column=1, value="C")
-    ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=2, value="Đã thanh toán")
+    ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=14, value=0)
-        # Tổng tiền thanh toán (A+B-C)
-    cell = ws.cell(row=total_row + 3, column=2)
-    cell.value = "Tổng tiền thanh toán (A+B-C)"
-    # Gán trước khi merge
+
+    # Tổng tiền thanh toán (A+B-C)
     ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
     ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
+    ws.cell(row=total_row + 3, column=14, value=0)
     
     output = io.BytesIO()
     wb.save(output)
@@ -176,3 +177,4 @@ def export_excel_api(quotation_name):
     frappe.local.response.filename = f"Bao_gia_{quotation.name}.xlsx"
     frappe.local.response.filecontent = output.read()
     frappe.local.response.type = "binary"
+   
