@@ -1,8 +1,7 @@
 import frappe
 import io
-import os
 import requests
-from openpyxl import load_workbook
+from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
 
@@ -12,13 +11,14 @@ def export_excel_api(quotation_name):
     quotation = frappe.get_doc("Quotation", quotation_name)
     customer = frappe.get_doc("Customer", quotation.party_name)
 
-    # Load file template Excel
-    file_path = frappe.get_site_path("public", "files", "mẫu báo giá final.xlsx")
-    wb = load_workbook(file_path)
+    # Tạo workbook mới
+    wb = Workbook()
     ws = wb.active
+    ws.title = "Báo giá"
 
     # Định nghĩa font và border
     font_13 = Font(name="Times New Roman", size=13)
+    font_13_bold = Font(name="Times New Roman", size=13, bold=True)
     thin_border = Border(
         left=Side(style='thin'),
         right=Side(style='thin'),
@@ -28,61 +28,121 @@ def export_excel_api(quotation_name):
     center_alignment = Alignment(horizontal='center', vertical='center')
     left_alignment = Alignment(horizontal='left', vertical='center')
 
+    # Thêm logo
+    try:
+        logo_path = frappe.get_site_path("public", "files", "logo.jpg")  # Đường dẫn đến logo
+        if os.path.exists(logo_path):
+            img = XLImage(logo_path)
+            img.width = 100  # Điều chỉnh kích thước logo
+            img.height = 100
+            ws.add_image(img, "A1")  # Đặt logo tại ô A1
+            ws.row_dimensions[1].height = 80  # Điều chỉnh chiều cao hàng để vừa logo
+        else:
+            frappe.log_error(f"Logo not found at: {logo_path}")
+    except Exception as e:
+        frappe.log_error(f"Error adding logo: {str(e)}")
+
+    # Điền thông tin header (dịch xuống dưới để không đè lên logo)
+    ws.merge_cells('A3:N3')
+    ws['A3'] = "CÔNG TY PHÁT TRIỂN THƯƠNG MẠI THẾ KỶ"
+    ws['A3'].font = font_13_bold
+    ws['A3'].alignment = center_alignment
+
+    ws.merge_cells('A4:N4')
+    ws['A4'] = "Địa chỉ: Số 30 đường 16, KĐT Đông Tăng Long, TP Thủ Đức, HCM"
+    ws['A4'].font = font_13
+    ws['A4'].alignment = center_alignment
+
+    ws.merge_cells('A5:N5')
+    ws['A5'] = "Hotline: 0768.927.526 - 033.566.9526"
+    ws['A5'].font = font_13
+    ws['A5'].alignment = center_alignment
+
+    ws.merge_cells('A6:N6')
+    ws['A6'] = "https://thehome.com.vn/"
+    ws['A6'].font = font_13
+    ws['A6'].alignment = center_alignment
+
+    ws.merge_cells('A7:N7')
+    ws['A7'] = "PHIẾU BÁO GIÁ BÁN HÀNG"
+    ws['A7'].font = font_13_bold
+    ws['A7'].alignment = center_alignment
+
     # Điền thông tin khách hàng
-    ws["B9"] = customer.customer_name or "N/A"
-    ws["B9"].font = font_13
+    ws['A9'] = "Khách hàng:"
+    ws['A9'].font = font_13
+    ws['B9'] = customer.customer_name or "N/A"
+    ws['B9'].font = font_13
 
     # Lấy thông tin liên hệ (Contact)
+    contact_mobile = "N/A"
     contact_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
         "parenttype": "Contact"
     }, "parent")
-
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
         contact_mobile = contact.mobile_no or contact.phone or "N/A"
-        ws.cell(row=9, column=10, value=contact_mobile).font = font_13
-        ws.cell(row=9, column=10).alignment = left_alignment
+
+    ws['I9'] = "Điện thoại:"
+    ws['I9'].font = font_13
+    ws['J9'] = contact_mobile
+    ws['J9'].font = font_13
+    ws['J9'].alignment = left_alignment
 
     # Lấy thông tin địa chỉ (Address)
+    address_line = "N/A"
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
         "parenttype": "Address"
     }, "parent")
-
     if address_name:
         address = frappe.get_doc("Address", address_name)
-        ws["B10"] = address.address_line1 or "N/A"
-        ws["B10"].font = font_13
+        address_line = address.address_line1 or "N/A"
 
-    # Xóa dữ liệu mẫu ở row 14, chỉ gán giá trị cho ô đầu tiên của vùng merge
-    template_row = 14
-    merged_ranges = [r for r in ws.merged_cells.ranges if r.min_row == template_row]
-    for col in range(1, 15):
-        # Kiểm tra xem ô có thuộc vùng merge hay không
-        is_in_merged = False
-        for merged in merged_ranges:
-            if col in range(merged.min_col, merged.max_col + 1):
-                is_in_merged = True
-                # Chỉ gán giá trị cho ô đầu tiên của vùng merge
-                if col == merged.min_col:
-                    ws.cell(row=template_row, column=col).value = None
-                break
-        if not is_in_merged:
-            ws.cell(row=template_row, column=col).value = None
+    ws['A10'] = "Địa chỉ:"
+    ws['A10'].font = font_13
+    ws['B10'] = address_line
+    ws['B10'].font = font_13
 
-    # Chèn thêm hàng nếu có nhiều hơn 1 item
-    num_items = len(quotation.items)
-    if num_items > 1:
-        ws.insert_rows(15, num_items - 1)
+    ws['A11'] = "Lời đầu tiên, xin cảm ơn Quý khách hàng đã quan tâm đến sản phẩm nội thất của công ty chúng tôi."
+    ws['A11'].font = font_13
+    ws.merge_cells('A11:N11')
+
+    ws['A12'] = "Chúng tôi xin gửi đến Quý khách hàng Bảng báo giá như sau:"
+    ws['A12'].font = font_13
+    ws.merge_cells('A12:N12')
+
+    # Điền tiêu đề bảng
+    headers = ["STT", "Tên sản phẩm", "", "", "Kích thước sản phẩm", "Mã hàng", "", "SL", "Hình ảnh", "", "Đơn vị", "Đơn giá", "CK (%)", "Thành tiền"]
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=14, column=col, value=header).font = font_13_bold
+        ws.cell(row=14, column=col).border = thin_border
+        ws.cell(row=14, column=col).alignment = center_alignment
+
+    # Merge các cột tiêu đề
+    ws.merge_cells('B14:D14')  # Tên sản phẩm
+    ws.merge_cells('F14:G14')  # Mã hàng
+    ws.merge_cells('I14:J14')  # Hình ảnh
+
+    # Kiểm tra dữ liệu trong quotation.items
+    frappe.log_error(f"Total items: {len(quotation.items)}")
+    for i, item in enumerate(quotation.items):
+        frappe.log_error(f"Item {i+1}:")
+        frappe.log_error(f"  item_name: {item.item_name}")
+        frappe.log_error(f"  size: {item.size}")
+        frappe.log_error(f"  item_code: {item.item_code}")
+        frappe.log_error(f"  qty: {item.qty}")
+        frappe.log_error(f"  rate: {item.rate}")
+        frappe.log_error(f"  discount_percentage: {item.discount_percentage}")
+        frappe.log_error(f"  amount: {item.amount}")
 
     # Điền dữ liệu cho từng item
     for i, item in enumerate(quotation.items):
-        row = 14 + i
+        row = 16 + i
 
-        # Định dạng và điền dữ liệu cho từng ô
         # STT
         ws.cell(row=row, column=1, value=i + 1).font = font_13
         ws.cell(row=row, column=1).border = thin_border
@@ -163,13 +223,7 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=14).number_format = '#,##0'
 
     # Điền thông tin tổng cộng và các mục khác
-    total_row = 14 + num_items
-
-    # Xóa merge cells cũ (nếu có) từ total_row trở đi
-    for i in range(4):
-        for merged_range in list(ws.merged_cells.ranges):
-            if merged_range.min_row == total_row + i:
-                ws.unmerge_cells(str(merged_range))
+    total_row = 16 + len(quotation.items)
 
     # Tổng cộng (A)
     ws.cell(row=total_row, column=1, value="A").font = font_13
@@ -208,6 +262,44 @@ def export_excel_api(quotation_name):
     ws.cell(row=total_row + 3, column=14, value=quotation.total or 0).font = font_13
     ws.cell(row=total_row + 3, column=14).border = thin_border
     ws.cell(row=total_row + 3, column=14).number_format = '#,##0'
+
+    # Điền footer
+    footer_row = total_row + 5
+    ws.merge_cells(start_row=footer_row, start_column=1, end_row=footer_row, end_column=3)
+    ws.cell(row=footer_row, column=1, value="Khách hàng").font = font_13
+    ws.cell(row=footer_row, column=1).alignment = center_alignment
+
+    ws.merge_cells(start_row=footer_row, start_column=5, end_row=footer_row, end_column=7)
+    ws.cell(row=footer_row, column=5, value="Người giao hàng").font = font_13
+    ws.cell(row=footer_row, column=5).alignment = center_alignment
+
+    ws.merge_cells(start_row=footer_row, start_column=9, end_row=footer_row, end_column=14)
+    ws.cell(row=footer_row, column=9, value="Ngày     Tháng     Năm").font = font_13
+    ws.cell(row=footer_row, column=9).alignment = center_alignment
+
+    ws.merge_cells(start_row=footer_row + 1, start_column=1, end_row=footer_row + 1, end_column=3)
+    ws.cell(row=footer_row + 1, column=1, value="(Ký và ghi rõ họ tên)").font = font_13
+    ws.cell(row=footer_row + 1, column=1).alignment = center_alignment
+
+    ws.merge_cells(start_row=footer_row + 1, start_column=5, end_row=footer_row + 1, end_column=7)
+    ws.cell(row=footer_row + 1, column=5, value="(Ký và ghi rõ họ tên)").font = font_13
+    ws.cell(row=footer_row + 1, column=5).alignment = center_alignment
+
+    ws.merge_cells(start_row=footer_row + 1, start_column=9, end_row=footer_row + 1, end_column=14)
+    ws.cell(row=footer_row + 1, column=9, value="(Ký và ghi rõ họ tên)").font = font_13
+    ws.cell(row=footer_row + 1, column=9).alignment = center_alignment
+
+    ws.merge_cells(start_row=footer_row + 3, start_column=1, end_row=footer_row + 3, end_column=14)
+    ws.cell(row=footer_row + 3, column=1, value="Lưu ý: Không đổi trả sản phẩm mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = font_13
+
+    ws.merge_cells(start_row=footer_row + 4, start_column=1, end_row=footer_row + 4, end_column=14)
+    ws.cell(row=footer_row + 4, column=1, value="Hình thức thanh toán:").font = font_13
+
+    ws.merge_cells(start_row=footer_row + 5, start_column=1, end_row=footer_row + 5, end_column=14)
+    ws.cell(row=footer_row + 5, column=1, value="- Thanh toán 100% giá trị đơn hàng khi nhận được hàng").font = font_13
+
+    ws.merge_cells(start_row=footer_row + 6, start_column=1, end_row=footer_row + 6, end_column=14)
+    ws.cell(row=footer_row + 6, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
 
     # Xuất file Excel
     output = io.BytesIO()
