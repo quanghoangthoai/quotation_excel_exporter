@@ -4,7 +4,7 @@ import os
 import requests
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
-from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
+from openpyxl.styles import Alignment, Font
 from copy import copy
 
 @frappe.whitelist()
@@ -27,8 +27,8 @@ def export_excel_api(quotation_name):
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
         contact_mobile = contact.mobile_no or contact.phone or ""
-        ws["I9"] = contact_mobile
-        ws["I9"].alignment = Alignment(horizontal="left", vertical="center")
+        ws.cell(row=9, column=9, value=contact_mobile)  # I9
+        ws.cell(row=9, column=9).alignment = Alignment(horizontal="left", vertical="center")
 
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
@@ -119,26 +119,29 @@ def export_excel_api(quotation_name):
 
     total_row = template_row + num_items
 
-    # Safely unmerge and then write values
     for i in range(4):
         for merged_range in list(ws.merged_cells.ranges):
             if merged_range.min_row == total_row + i:
                 ws.unmerge_cells(str(merged_range))
 
     ws.cell(row=total_row, column=1, value="A")
-    ws.cell(row=total_row, column=2, value="Tổng cộng")
+    ws.cell(row=total_row, column=2).value = "Tổng cộng"
     ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=13)
     ws.cell(row=total_row, column=14, value=quotation.total)
 
     ws.cell(row=total_row + 1, column=1, value="B")
-    ws.cell(row=total_row + 1, column=2, value="Phụ phí")
+    ws.cell(row=total_row + 1, column=2).value = "Phụ phí"
     ws.merge_cells(start_row=total_row + 1, start_column=2, end_row=total_row + 1, end_column=13)
     ws.cell(row=total_row + 1, column=14, value=0)
 
     ws.cell(row=total_row + 2, column=1, value="C")
-    ws.cell(row=total_row + 2, column=2, value="Đã thanh toán")
+    ws.cell(row=total_row + 2, column=2).value = "Đã thanh toán"
     ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=14, value=0)
+
+    for merged_range in list(ws.merged_cells.ranges):
+        if merged_range.min_row == total_row + 3:
+            ws.unmerge_cells(str(merged_range))
 
     ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
     ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
