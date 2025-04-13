@@ -30,8 +30,9 @@ def export_excel_api(quotation_name):
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
         contact_mobile = contact.mobile_no or contact.phone or ""
-        ws.cell(row=9, column=10, value=contact_mobile).font = font_13
-        ws.cell(row=9, column=10).alignment = Alignment(horizontal="left", vertical="center")
+        phone_cell = ws.cell(row=9, column=10, value=contact_mobile)
+        phone_cell.font = font_13
+        phone_cell.alignment = Alignment(horizontal="left", vertical="center")
 
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
@@ -70,18 +71,7 @@ def export_excel_api(quotation_name):
     for i, item in enumerate(quotation.items):
         row = template_row + i
 
-        for col in range(1, 15):
-            target_cell = ws.cell(row=row, column=col)
-            if template_styles[col]['font']:
-                target_cell.font = copy(template_styles[col]['font'])
-            if template_styles[col]['border']:
-                target_cell.border = copy(template_styles[col]['border'])
-            if template_styles[col]['fill']:
-                target_cell.fill = copy(template_styles[col]['fill'])
-            if template_styles[col]['alignment']:
-                target_cell.alignment = copy(template_styles[col]['alignment'])
-            target_cell.number_format = template_styles[col]['number_format']
-
+        # Ghi dữ liệu trước khi merge
         ws.cell(row=row, column=1, value=i + 1).font = font_13
         ws.cell(row=row, column=2, value=item.item_name).font = font_13
         ws.cell(row=row, column=5, value=item.size or "").font = font_13
@@ -92,6 +82,7 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=13, value=item.discount_percentage or 0).font = font_13
         ws.cell(row=row, column=14, value=item.amount or (item.qty * item.rate)).font = font_13
 
+        # Merge sau khi gán dữ liệu
         for min_col, max_col in template_merges:
             ws.merge_cells(start_row=row, start_column=min_col, end_row=row, end_column=max_col)
 
