@@ -109,6 +109,7 @@ def export_excel_api(quotation_name):
                     img = XLImage(image_path)
                     img.width = 100
                     img.height = 100
+                    ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 80
                 else:
@@ -142,10 +143,11 @@ def export_excel_api(quotation_name):
     ws.cell(row=total_row + 2, column=14, value=0)
 
     for merged_range in list(ws.merged_cells.ranges):
-        if merged_range.min_row == total_row + 3 and merged_range.min_col == 2:
+        if merged_range.min_row == total_row + 3 and merged_range.min_col == 1:
             ws.unmerge_cells(str(merged_range))
-    ws.cell(row=total_row + 3, column=2).value = "Tổng tiền thanh toán (A+B-C)"
-    ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
+
+    ws.cell(row=total_row + 3, column=1, value="Tổng tiền thanh toán (A+B-C)")
+    ws.merge_cells(start_row=total_row + 3, start_column=1, end_row=total_row + 3, end_column=13)
     ws.cell(row=total_row + 3, column=14, value=quotation.total)
 
     output = io.BytesIO()
