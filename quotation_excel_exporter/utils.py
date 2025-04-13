@@ -30,9 +30,8 @@ def export_excel_api(quotation_name):
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
         contact_mobile = contact.mobile_no or contact.phone or ""
-        phone_cell = ws.cell(row=9, column=10, value=contact_mobile)
-        phone_cell.font = font_13
-        phone_cell.alignment = Alignment(horizontal="left", vertical="center")
+        ws.cell(row=9, column=10, value=contact_mobile).font = font_13
+        ws.cell(row=9, column=10).alignment = Alignment(horizontal="left", vertical="center")
 
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
@@ -45,47 +44,76 @@ def export_excel_api(quotation_name):
         ws["B10"] = address.address_line1 or ""
         ws["B10"].font = font_13
 
+    # Store template row formatting
     template_row = 14
     template_styles = {}
-
-    for col in range(1, 15):
-        cell = ws.cell(row=template_row, column=col)
-        template_styles[col] = {
-            'font': copy(cell.font) if cell.font else None,
-            'border': copy(cell.border) if cell.border else None,
-            'fill': copy(cell.fill) if cell.fill else None,
-            'number_format': cell.number_format,
-            'alignment': copy(cell.alignment) if cell.alignment else None
-        }
-
+    
+    # Get all merged cell ranges before any modifications
     template_merges = []
     for merged_range in list(ws.merged_cells.ranges):
         if merged_range.min_row == template_row:
-            template_merges.append((merged_range.min_col, merged_range.max_col))
-            ws.unmerge_cells(str(merged_range))
+            template_merges.append({
+                'min_col': merged_range.min_col,
+                'max_col': merged_range.max_col,
+                'min_row': merged_range.min_row,
+                'max_row': merged_range.max_row
+            })
 
+    # Save template formatting for the item row
+    for col in range(1, 15):
+        cell = ws.cell(row=template_row, column=col)
+        template_styles[col] = {
+            'font': Font(name="Times New Roman", size=13),
+            'border': copy(cell.border) if cell.border else None,
+            'fill': copy(cell.fill) if cell.fill else None,
+            'number_format': cell.number_format,
+            'alignment': copy(cell.alignment) if cell.alignment else Alignment(horizontal='left', vertical='center')
+        }
+
+    # Insert rows for additional items
     num_items = len(quotation.items)
     if num_items > 1:
         ws.insert_rows(template_row + 1, num_items - 1)
 
+    # Fill items with proper formatting
     for i, item in enumerate(quotation.items):
         row = template_row + i
+        
+        # First apply template formatting to all cells in the row
+        for col in range(1, 15):
+            target_cell = ws.cell(row=row, column=col)
+            
+            # Apply all styles from template
+            target_cell.font = template_styles[col]['font']
+            if template_styles[col]['border']:
+                target_cell.border = copy(template_styles[col]['border'])
+            if template_styles[col]['fill']:
+                target_cell.fill = copy(template_styles[col]['fill'])
+            if template_styles[col]['alignment']:
+                target_cell.alignment = copy(template_styles[col]['alignment'])
+            target_cell.number_format = template_styles[col]['number_format']
 
-        # Ghi dữ liệu trước khi merge
-        ws.cell(row=row, column=1, value=i + 1).font = font_13
-        ws.cell(row=row, column=2, value=item.item_name).font = font_13
-        ws.cell(row=row, column=5, value=item.size or "").font = font_13
-        ws.cell(row=row, column=7, value=item.item_code).font = font_13
-        ws.cell(row=row, column=8, value=item.qty).font = font_13
-        ws.cell(row=row, column=11, value="Bộ").font = font_13
-        ws.cell(row=row, column=12, value=item.rate or 0).font = font_13
-        ws.cell(row=row, column=13, value=item.discount_percentage or 0).font = font_13
-        ws.cell(row=row, column=14, value=item.amount or (item.qty * item.rate)).font = font_13
+        # Fill data
+        ws.cell(row=row, column=1, value=i + 1)  # STT
+        ws.cell(row=row, column=2, value=item.item_name)  # Tên sản phẩm
+        ws.cell(row=row, column=5, value=item.size or "")  # Kích thước
+        ws.cell(row=row, column=7, value=item.item_code)  # Mã hàng
+        ws.cell(row=row, column=8, value=item.qty)  # SL
+        ws.cell(row=row, column=11, value="Bộ")  # Đơn vị
+        ws.cell(row=row, column=12, value=item.rate or 0)  # Đơn giá
+        ws.cell(row=row, column=13, value=item.discount_percentage or 0)  # CK
+        ws.cell(row=row, column=14, value=item.amount or (item.qty * item.rate))  # Thành tiền
 
-        # Merge sau khi gán dữ liệu
-        for min_col, max_col in template_merges:
-            ws.merge_cells(start_row=row, start_column=min_col, end_row=row, end_column=max_col)
+        # Apply merges for this row
+        for merge in template_merges:
+            ws.merge_cells(
+                start_row=row,
+                start_column=merge['min_col'],
+                end_row=row,
+                end_column=merge['max_col']
+            )
 
+        # Handle images
         if item.image:
             try:
                 image_path = ""
@@ -103,6 +131,7 @@ def export_excel_api(quotation_name):
                     img = XLImage(image_path)
                     img.width = 100
                     img.height = 100
+                    # Merge image cells before adding image
                     ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 80
