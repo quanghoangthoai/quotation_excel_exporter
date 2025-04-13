@@ -15,7 +15,7 @@ def export_excel_api(quotation_name):
     file_path = frappe.get_site_path("public", "files", "mẫu báo giá.xlsx")
     wb = load_workbook(file_path)
     ws = wb.active
- # Đường dẫn tới logo
+    # Đường dẫn tới logo
     logo_path = frappe.get_site_path("public", "files", "logo.jpg")
     if os.path.exists(logo_path):
         logo_img = XLImage(logo_path)
@@ -129,16 +129,19 @@ def export_excel_api(quotation_name):
                     image_path = frappe.get_site_path("public", item.image.lstrip("/"))
                 elif item.image.startswith("http"):
                     tmp_path = f"/tmp/tmp_item_{i}.png"
-                    with open(tmp_path, "wb") as f:
-                        f.write(requests.get(item.image).content)
-                    image_path = tmp_path
-
-                if os.path.exists(image_path):
-                    img = XLImage(image_path)
-                    img.width = 100
-                    img.height = 100
-                    ws.add_image(img, f"I{row}")
-                    ws.row_dimensions[row].height = 80
+                    try:
+                        with open(tmp_path, "wb") as f:
+                            f.write(requests.get(item.image).content)
+                        image_path = tmp_path
+                        if os.path.exists(image_path):
+                            img = XLImage(image_path)
+                            img.width = 100
+                            img.height = 100
+                            ws.add_image(img, f"I{row}")
+                            ws.row_dimensions[row].height = 80
+                    finally:
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
             except:
                 ws.row_dimensions[row].height = 20
         else:
@@ -166,6 +169,11 @@ def export_excel_api(quotation_name):
     ws.cell(row=total_row + 2, column=14, value=0)
 
     # Tổng tiền thanh toán (A+B-C)
+    # Check for existing merges in the target row and unmerge if necessary
+    for merged_range in list(ws.merged_cells.ranges):
+        if merged_range.min_row <= total_row + 3 <= merged_range.max_row:
+            ws.unmerge_cells(str(merged_range))
+    # Set value in the top-left cell before merging
     ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
     ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
     ws.cell(row=total_row + 3, column=14, value=0)
@@ -177,4 +185,3 @@ def export_excel_api(quotation_name):
     frappe.local.response.filename = f"Bao_gia_{quotation.name}.xlsx"
     frappe.local.response.filecontent = output.read()
     frappe.local.response.type = "binary"
-   
