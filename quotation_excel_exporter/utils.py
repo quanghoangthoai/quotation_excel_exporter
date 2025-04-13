@@ -16,7 +16,6 @@ def export_excel_api(quotation_name):
     wb = load_workbook(file_path)
     ws = wb.active
 
-    # Fill customer info
     ws["B9"] = customer.customer_name or ""
     contact_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
@@ -45,20 +44,17 @@ def export_excel_api(quotation_name):
     for col in range(1, 15):
         cell = ws.cell(row=template_row, column=col)
         template_styles[col] = {
-            'font': copy(cell.font) if cell.font else None,
-            'border': copy(cell.border) if cell.border else None,
-            'fill': copy(cell.fill) if cell.fill else None,
+            'font': copy(cell.font),
+            'border': copy(cell.border),
+            'fill': copy(cell.fill),
             'number_format': cell.number_format,
-            'alignment': copy(cell.alignment) if cell.alignment else None
+            'alignment': copy(cell.alignment)
         }
 
     template_merges = []
-    for merged_range in ws.merged_cells.ranges:
-        if merged_range.min_row == template_row:
-            template_merges.append((merged_range.min_col, merged_range.max_col))
-
     for merged_range in list(ws.merged_cells.ranges):
         if merged_range.min_row == template_row:
+            template_merges.append((merged_range.min_col, merged_range.max_col))
             ws.unmerge_cells(str(merged_range))
 
     num_items = len(quotation.items)
@@ -68,14 +64,13 @@ def export_excel_api(quotation_name):
     for i, item in enumerate(quotation.items):
         row = template_row + i
 
-        # Copy row height to ensure same spacing
-        if row > template_row:
-            ws.row_dimensions[row].height = ws.row_dimensions[template_row].height
-
         for col in range(1, 15):
             source_cell = ws.cell(row=template_row, column=col)
             target_cell = ws.cell(row=row, column=col)
-            target_cell._style = source_cell._style
+            target_cell.font = copy(source_cell.font)
+            target_cell.border = copy(source_cell.border)
+            target_cell.fill = copy(source_cell.fill)
+            target_cell.alignment = copy(source_cell.alignment)
             target_cell.number_format = source_cell.number_format
 
         ws.cell(row=row, column=1, value=i + 1)
@@ -140,10 +135,6 @@ def export_excel_api(quotation_name):
     ws.cell(row=total_row + 2, column=2).value = "Đã thanh toán"
     ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=14, value=0)
-
-    for merged_range in list(ws.merged_cells.ranges):
-        if merged_range.min_row == total_row + 3 and merged_range.min_col == 1:
-            ws.unmerge_cells(str(merged_range))
 
     ws.cell(row=total_row + 3, column=1, value="Tổng tiền thanh toán (A+B-C)")
     ws.merge_cells(start_row=total_row + 3, start_column=1, end_row=total_row + 3, end_column=13)
