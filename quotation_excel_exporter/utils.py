@@ -12,7 +12,7 @@ def export_excel_api(quotation_name):
     quotation = frappe.get_doc("Quotation", quotation_name)
     customer = frappe.get_doc("Customer", quotation.party_name)
 
-    file_path = frappe.get_site_path("public", "files", "mẫu báo giá.xlsx")
+    file_path = frappe.get_site_path("public", "files", "mẫu báo giá final.xlsx")
     wb = load_workbook(file_path)
     ws = wb.active
 
@@ -27,8 +27,8 @@ def export_excel_api(quotation_name):
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
         contact_mobile = contact.mobile_no or contact.phone or ""
-        ws.cell(row=9, column=9, value=contact_mobile)
-        ws.cell(row=9, column=9).alignment = Alignment(horizontal="left", vertical="center")
+        ws.cell(row=9, column=10, value=contact_mobile)
+        ws.cell(row=9, column=10).alignment = Alignment(horizontal="left", vertical="center")
 
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
@@ -90,7 +90,12 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=14, value=item.amount or (item.qty * item.rate))
 
         for min_col, max_col in template_merges:
-            ws.merge_cells(start_row=row, start_column=min_col, end_row=row, end_column=max_col)
+            ws.merge_cells(
+                start_row=row,
+                start_column=min_col,
+                end_row=row,
+                end_column=max_col
+            )
 
         if item.image:
             try:
@@ -110,6 +115,8 @@ def export_excel_api(quotation_name):
                     img.width = 100
                     img.height = 100
                     ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
+                    # Center image between I and J
+                    col_offset = (ws.column_dimensions['J'].width or 10) - (ws.column_dimensions['I'].width or 10)
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 80
                 else:
