@@ -26,7 +26,9 @@ def export_excel_api(quotation_name):
 
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
-        ws["I9"] = contact.mobile_no or contact.phone or ""
+        contact_mobile = contact.mobile_no or contact.phone or ""
+        ws["I9"] = contact_mobile
+        ws["I9"].alignment = Alignment(horizontal="left", vertical="center")
 
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
@@ -38,7 +40,6 @@ def export_excel_api(quotation_name):
         address = frappe.get_doc("Address", address_name)
         ws["B10"] = address.address_line1 or ""
 
-    # Store template row formatting
     template_row = 14
     template_styles = {}
     for col in range(1, 15):
@@ -51,23 +52,19 @@ def export_excel_api(quotation_name):
             'alignment': copy(cell.alignment) if cell.alignment else None
         }
 
-    # Get merged ranges in template row
     template_merges = []
     for merged_range in ws.merged_cells.ranges:
         if merged_range.min_row == template_row:
             template_merges.append((merged_range.min_col, merged_range.max_col))
 
-    # Unmerge template row cells
     for merged_range in list(ws.merged_cells.ranges):
         if merged_range.min_row == template_row:
             ws.unmerge_cells(str(merged_range))
 
-    # Insert rows for additional items
     num_items = len(quotation.items)
     if num_items > 1:
         ws.insert_rows(template_row + 1, num_items - 1)
 
-    # Fill items
     for i, item in enumerate(quotation.items):
         row = template_row + i
         for col in range(1, 15):
@@ -120,17 +117,12 @@ def export_excel_api(quotation_name):
         else:
             ws.row_dimensions[row].height = 20
 
-    # Remove any old total rows (from template)
-    existing_total_row = None
-    for r in range(template_row + 1, ws.max_row + 1):
-        if ws.cell(row=r, column=1).value == "A":
-            existing_total_row = r
-            break
-    if existing_total_row:
-        ws.delete_rows(existing_total_row, 4)
-
-    # Rebuild total section
     total_row = template_row + num_items
+
+    for i in range(4):
+        for col in range(1, 15):
+            ws.cell(row=total_row + i, column=col).value = None
+
     ws.cell(row=total_row, column=1, value="A")
     ws.cell(row=total_row, column=2, value="Tổng cộng")
     ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=13)
@@ -146,8 +138,8 @@ def export_excel_api(quotation_name):
     ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=14, value=0)
 
-    ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
     ws.merge_cells(start_row=total_row + 3, start_column=2, end_row=total_row + 3, end_column=13)
+    ws.cell(row=total_row + 3, column=2, value="Tổng tiền thanh toán (A+B-C)")
     ws.cell(row=total_row + 3, column=14, value=quotation.total)
 
     output = io.BytesIO()
