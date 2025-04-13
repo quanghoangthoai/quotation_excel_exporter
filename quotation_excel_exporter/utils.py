@@ -67,17 +67,16 @@ def export_excel_api(quotation_name):
 
     for i, item in enumerate(quotation.items):
         row = template_row + i
+
+        # Copy row height to ensure same spacing
+        if row > template_row:
+            ws.row_dimensions[row].height = ws.row_dimensions[template_row].height
+
         for col in range(1, 15):
-            cell = ws.cell(row=row, column=col)
-            if template_styles[col]['font']:
-                cell.font = copy(template_styles[col]['font'])
-            if template_styles[col]['border']:
-                cell.border = copy(template_styles[col]['border'])
-            if template_styles[col]['fill']:
-                cell.fill = copy(template_styles[col]['fill'])
-            if template_styles[col]['alignment']:
-                cell.alignment = copy(template_styles[col]['alignment'])
-            cell.number_format = template_styles[col]['number_format']
+            source_cell = ws.cell(row=template_row, column=col)
+            target_cell = ws.cell(row=row, column=col)
+            target_cell._style = source_cell._style
+            target_cell.number_format = source_cell.number_format
 
         ws.cell(row=row, column=1, value=i + 1)
         ws.cell(row=row, column=2, value=item.item_name)
@@ -90,12 +89,7 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=14, value=item.amount or (item.qty * item.rate))
 
         for min_col, max_col in template_merges:
-            ws.merge_cells(
-                start_row=row,
-                start_column=min_col,
-                end_row=row,
-                end_column=max_col
-            )
+            ws.merge_cells(start_row=row, start_column=min_col, end_row=row, end_column=max_col)
 
         if item.image:
             try:
