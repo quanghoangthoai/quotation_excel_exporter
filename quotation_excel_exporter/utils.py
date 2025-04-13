@@ -98,21 +98,23 @@ def export_excel_api(quotation_name):
                 if item.image.startswith("/files/"):
                     image_path = frappe.get_site_path("public", item.image.lstrip("/"))
                 elif item.image.startswith("http"):
-                    tmp_path = f"/tmp/tmp_item_{i}.png"
-                    try:
+                    response = requests.get(item.image, timeout=5)
+                    if response.status_code == 200:
+                        tmp_path = f"/tmp/tmp_item_{i}.png"
                         with open(tmp_path, "wb") as f:
-                            f.write(requests.get(item.image).content)
+                            f.write(response.content)
                         image_path = tmp_path
-                        if os.path.exists(image_path):
-                            img = XLImage(image_path)
-                            img.width = 100
-                            img.height = 100
-                            ws.add_image(img, f"I{row}")
-                            ws.row_dimensions[row].height = 80
-                    finally:
-                        if os.path.exists(tmp_path):
-                            os.remove(tmp_path)
-            except:
+
+                if os.path.exists(image_path):
+                    img = XLImage(image_path)
+                    img.width = 100
+                    img.height = 100
+                    ws.add_image(img, f"I{row}")
+                    ws.row_dimensions[row].height = 80
+                else:
+                    ws.row_dimensions[row].height = 20
+            except Exception as e:
+                frappe.log_error(f"Hình ảnh lỗi: {item.image} - {str(e)}")
                 ws.row_dimensions[row].height = 20
         else:
             ws.row_dimensions[row].height = 20
@@ -139,7 +141,6 @@ def export_excel_api(quotation_name):
     ws.merge_cells(start_row=total_row + 2, start_column=2, end_row=total_row + 2, end_column=13)
     ws.cell(row=total_row + 2, column=14, value=0)
 
-    # Unmerge the cell first, then write value before merging again
     for merged_range in list(ws.merged_cells.ranges):
         if merged_range.min_row == total_row + 3 and merged_range.min_col == 2:
             ws.unmerge_cells(str(merged_range))
