@@ -24,7 +24,7 @@ def export_excel_api(quotation_name):
     left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
     # Logo
-    logo_path = frappe.get_site_path("public", "files", "z6473642459612_58e86d169bb72c78b360392b4f81e8bae2152f.jpg")
+    logo_path = frappe.get_site_path("public", "files", "logo.jpg")
     if os.path.exists(logo_path):
         logo_img = XLImage(logo_path)
         logo_img.width = 180
@@ -38,37 +38,41 @@ def export_excel_api(quotation_name):
     ws["C1"].font = font_18
     ws["C1"].alignment = center_alignment
 
-    ws["A3"] = "Địa chỉ :"
-    ws["B3"] = "Số 30 đường 16, KĐT Đông Tăng Long, TP Thủ Đức , HCM"
-    ws["A4"] = "Hotline :"
-    ws["B4"] = "0768.927..526 - 033.566.9526"
-    ws["A5"] = "Website :"
-    ws["B5"] = "https://thehome.com.vn/"
-    for cell in ["A3", "B3", "A4", "B4", "A5", "B5"]:
+    ws.merge_cells("A5:B5")
+    ws["A5"] = "Địa chỉ :"
+    ws.merge_cells("A6:B6")
+    ws["A6"] = "Hotline :"
+    ws.merge_cells("A7:B7")
+    ws["A7"] = "Website :"
+    ws["C5"] = "Số 30 đường 16, KĐT Đông Tăng Long, TP Thủ Đức , HCM"
+    ws["C6"] = "0768.927..526 - 033.566.9526"
+    ws["C7"] = "https://thehome.com.vn/"
+
+    for cell in ["A5", "A6", "A7", "C5", "C6", "C7"]:
         ws[cell].font = font_13
         ws[cell].alignment = left_alignment
 
     # Tiêu đề
-    ws.merge_cells("A6:N6")
-    ws["A6"] = "PHIẾU BÁO GIÁ BÁN HÀNG"
-    ws["A6"].font = font_16
-    ws["A6"].alignment = center_alignment
+    ws.merge_cells("A9:N9")
+    ws["A9"] = "PHIẾU BÁO GIÁ BÁN HÀNG"
+    ws["A9"].font = font_16
+    ws["A9"].alignment = center_alignment
 
     # Lời mở đầu
-    ws.merge_cells("A8:N8")
-    ws["A8"] = "Lời đầu tiên , xin cảm ơn Quý khách hàng đã quan tâm đến sản phẩm nội thất của công ty chúng tôi."
-    ws["A8"].font = font_13
-    ws["A8"].alignment = left_alignment
+    ws.merge_cells("A11:N11")
+    ws["A11"] = "Lời đầu tiên , xin cảm ơn Quý khách hàng đã quan tâm đến sản phẩm nội thất của công ty chúng tôi."
+    ws["A11"].font = font_13
+    ws["A11"].alignment = left_alignment
 
-    ws.merge_cells("A9:N9")
-    ws["A9"] = "Chúng tôi xin gửi đến Quý khách hàng Bảng báo giá như sau :"
-    ws["A9"].font = font_13
-    ws["A9"].alignment = left_alignment
+    ws.merge_cells("A12:N12")
+    ws["A12"] = "Chúng tôi xin gửi đến Quý khách hàng Bảng báo giá như sau :"
+    ws["A12"].font = font_13
+    ws["A12"].alignment = left_alignment
 
     # Khách hàng
-    ws["A10"] = "Khách hàng :"
-    ws["B10"] = customer.customer_name or ""
-    ws["I10"] = "Điện thoại :"
+    ws["A13"] = "Khách hàng :"
+    ws["B13"] = customer.customer_name or ""
+    ws["I13"] = "Điện thoại :"
     contact_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -76,9 +80,9 @@ def export_excel_api(quotation_name):
     }, "parent")
     if contact_name:
         contact = frappe.get_doc("Contact", contact_name)
-        ws["J10"] = contact.mobile_no or contact.phone or ""
+        ws["J13"] = contact.mobile_no or contact.phone or ""
 
-    ws["A11"] = "Địa chỉ :"
+    ws["A14"] = "Địa chỉ :"
     address_name = frappe.db.get_value("Dynamic Link", {
         "link_doctype": "Customer",
         "link_name": customer.name,
@@ -86,7 +90,7 @@ def export_excel_api(quotation_name):
     }, "parent")
     if address_name:
         address = frappe.get_doc("Address", address_name)
-        ws["B11"] = address.address_line1 or ""
+        ws["B14"] = address.address_line1 or ""
 
     # Dòng tiêu đề bảng
     headers = ["STT", "Tên sản phẩm", "", "", "Kích thước", "", "Mã hàng", "SL", "Hình ảnh", "", "Đơn vị", "Đơn giá", "CK (%)", "Thành tiền"]
