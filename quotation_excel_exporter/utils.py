@@ -44,21 +44,21 @@ def export_excel_api(quotation_name):
     if os.path.exists(logo_path):
         try:
             logo_img = XLImage(logo_path)
-            logo_img.width = 214
-            logo_img.height = 120
+            logo_img.width = 202
+            logo_img.height = 66
             ws.add_image(logo_img, "A1")
             ws.merge_cells("A1:B3")
-            ws.row_dimensions[1].height = 40
-            ws.row_dimensions[2].height = 40
-            ws.row_dimensions[3].height = 40
+            ws.row_dimensions[1].height = 22
+            ws.row_dimensions[2].height = 22
+            ws.row_dimensions[3].height = 22
         except Exception as e:
             frappe.log_error(f"Failed to add logo: {str(e)}")
 
-    # Company Details
-    ws.merge_cells("D2:H3")
+ # Company Details
+    ws.merge_cells("D2:H3")  # Reverted back to D2:H3 (2 rows)
     ws["D2"] = "CÔNG TY PHÁT TRIỂN THƯƠNG MẠI THẾ KỶ"
     ws["D2"].font = font_18
-    ws["D2"].alignment = center_alignment
+    ws["D2"].alignment = center_alignment  # Ensures both horizontal and vertical centering
 
     ws.merge_cells("A5:B5")
     ws["A5"] = "Địa chỉ:"
