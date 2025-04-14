@@ -4,7 +4,7 @@ import os
 import requests
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
-from openpyxl.styles import Alignment, Font, Border, Side
+from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
 from datetime import datetime
 import tempfile
 
@@ -36,17 +36,21 @@ def export_excel_api(quotation_name):
     )
     center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    # Define background color for headers
+    header_fill = PatternFill(start_color="FF9933", end_color="FF9933", fill_type="solid")
 
     # Logo (Optional)
     logo_path = frappe.get_site_path("public", "files", "z6473642459612_58e86d169bb72c78b360392b4f81e8bae2152f.jpg")
     if os.path.exists(logo_path):
         try:
             logo_img = XLImage(logo_path)
-            logo_img.width = 180
-            logo_img.height = 60
+            logo_img.width = 214
+            logo_img.height = 120
             ws.add_image(logo_img, "A1")
             ws.merge_cells("A1:B3")
-            ws.row_dimensions[1].height = 60
+            ws.row_dimensions[1].height = 40
+            ws.row_dimensions[2].height = 40
+            ws.row_dimensions[3].height = 40
         except Exception as e:
             frappe.log_error(f"Failed to add logo: {str(e)}")
 
@@ -134,7 +138,7 @@ def export_excel_api(quotation_name):
         ws[cell].font = font_13 if cell != "A13" else font_13_bold
         ws[cell].alignment = left_alignment
 
-    # Table Headers (Bolded)
+    # Table Headers (Bolded with Background Color)
     headers = [
         "STT", "Tên sản phẩm", "", "", "Kích thước sản phẩm", "", "Mã hàng", 
         "SL", "Hình ảnh", "", "Đơn vị", "Đơn giá", "CK (%)", "Thành tiền"
@@ -146,6 +150,7 @@ def export_excel_api(quotation_name):
         cell.font = font_13_bold
         cell.alignment = center_alignment
         cell.border = thin_border
+        cell.fill = header_fill  # Apply the orange background color
 
     ws.merge_cells(f"B{row_num}:D{row_num}")
     ws.merge_cells(f"E{row_num}:F{row_num}")
@@ -184,10 +189,10 @@ def export_excel_api(quotation_name):
                         temp_files.append(image_path)
                 if image_path and os.path.exists(image_path):
                     img = XLImage(image_path)
-                    img.width = 80
-                    img.height = 80
+                    img.width = 140
+                    img.height = 90
                     ws.add_image(img, f"I{row}")
-                    ws.row_dimensions[row].height = 80
+                    ws.row_dimensions[row].height = 100
                     img.anchor = f"I{row}"
             except Exception as e:
                 frappe.log_error(f"Failed to add image for item {item.item_code}: {str(e)}")
@@ -198,8 +203,6 @@ def export_excel_api(quotation_name):
 
     # Totals (Formatted as a Table)
     current_row = row_num + len(quotation.items) + 1
-    additional_fees = 0
-    advance_payment = 0
 
     ws.cell(row=current_row, column=1, value="A").font = font_13
     ws.cell(row=current_row, column=1).border = thin_border
@@ -270,32 +273,36 @@ def export_excel_api(quotation_name):
     ws.cell(row=footer_row + 1, column=11, value="(Ký và ghi rõ họ tên)").font = font_13
     ws.cell(row=footer_row + 1, column=11).alignment = center_alignment
 
-    # Notes (Add 3-Row Gap, Bold Titles and Content)
+    # Notes (Add 3-Row Gap, Combine "Lưu ý" and "Không đổi trả" into one line)
     notes_row = footer_row + 1 + 3  # 3-row gap
     ws.merge_cells(start_row=notes_row, start_column=1, end_row=notes_row, end_column=14)
-    ws.cell(row=notes_row, column=1, value="Lưu ý:").font = font_13_bold
+    ws.cell(row=notes_row, column=1, value="Lưu ý: Không đổi trả sản phẩm mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = font_13_bold
     ws.cell(row=notes_row, column=1).alignment = left_alignment
 
     ws.merge_cells(start_row=notes_row + 1, start_column=1, end_row=notes_row + 1, end_column=14)
-    ws.cell(row=notes_row + 1, column=1, value="Không đổi trả sản phẩm mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = font_13_bold
+    ws.cell(row=notes_row + 1, column=1, value="Hình thức thanh toán:").font = font_13_bold
     ws.cell(row=notes_row + 1, column=1).alignment = left_alignment
 
     ws.merge_cells(start_row=notes_row + 2, start_column=1, end_row=notes_row + 2, end_column=14)
-    ws.cell(row=notes_row + 2, column=1, value="Hình thức thanh toán:").font = font_13_bold
+    ws.cell(row=notes_row + 2, column=1, value="- Thanh toán 100% giá trị đơn hàng khi nhận được hàng").font = font_13
     ws.cell(row=notes_row + 2, column=1).alignment = left_alignment
 
     ws.merge_cells(start_row=notes_row + 3, start_column=1, end_row=notes_row + 3, end_column=14)
-    ws.cell(row=notes_row + 3, column=1, value="- Thanh toán 100% giá trị đơn hàng khi nhận được hàng").font = font_13
+    ws.cell(row=notes_row + 3, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
     ws.cell(row=notes_row + 3, column=1).alignment = left_alignment
-
-    ws.merge_cells(start_row=notes_row + 4, start_column=1, end_row=notes_row + 4, end_column=14)
-    ws.cell(row=notes_row + 4, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
-    ws.cell(row=notes_row + 4, column=1).alignment = left_alignment
 
     # Set Column Widths
     column_widths = {
-        "B": 20, "C": 5, "D": 5, "E": 15, "F": 5, "G": 10,
-        "H": 5, "I": 15, "J": 5, "K": 8, "L": 12, "M": 8, "N": 12
+        "A": 12,
+        "B": 20, "C": 5, "D": 5, "E": 15, "F": 5,
+        "G": 15,
+        "H": 8,
+        "I": 15,
+        "J": 8,
+        "K": 10,
+        "L": 15,
+        "M": 10,
+        "N": 12
     }
     for col, width in column_widths.items():
         ws.column_dimensions[col].width = width
