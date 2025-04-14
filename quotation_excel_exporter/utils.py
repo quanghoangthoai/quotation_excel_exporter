@@ -99,7 +99,7 @@ def export_excel_api(quotation_name):
     ws.merge_cells(f"E{row_num}:F{row_num}")  # Kích thước
     ws.merge_cells(f"I{row_num}:J{row_num}")  # Hình ảnh
 
-    # Items
+   # Items
     for i, item in enumerate(quotation.items, 1):
         row = row_num + i
         
@@ -144,8 +144,20 @@ def export_excel_api(quotation_name):
                     img.height = 100
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 80
+                else:
+                    ws.row_dimensions[row].height = 20
+            except Exception as e:
+                frappe.log_error(f"Hình ảnh lỗi: {item.image} - {str(e)}")
+                ws.row_dimensions[row].height = 20
+        else:
+            ws.row_dimensions[row].height = 20
 
-    # Totals section
+        # Apply borders to all cells in the row
+        for col in range(1, 15):
+            cell = ws.cell(row=row, column=col)
+            cell.border = thin_border
+
+    # Totals section starts here
     current_row = row_num + len(quotation.items) + 1
     
     # A. Tổng cộng
