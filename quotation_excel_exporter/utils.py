@@ -195,30 +195,28 @@ def export_excel_api(quotation_name):
 
     # Totals
     current_row = row_num + len(quotation.items) + 1
-    additional_fees = frappe.db.get_value("Quotation", quotation.name, "additional_fees") or 0
-    advance_payment = frappe.db.get_value("Quotation", quotation.name, "advance_payment") or 0
-
+    
     ws.cell(row=current_row, column=1, value="A").font = font_13
     ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=2, value="Tổng cộng").font = font_13
-    ws.cell(row=current_row, column=14, value=quotation.grand_total).font = font_13
+    ws.cell(row=current_row, column=14, value=quotation.total).font = font_13
 
     current_row += 1
     ws.cell(row=current_row, column=1, value="B").font = font_13
     ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=2, value="Phụ phí").font = font_13
-    ws.cell(row=current_row, column=14, value=additional_fees).font = font_13
+    ws.cell(row=current_row, column=14, value="0").font = font_13
 
     current_row += 1
     ws.cell(row=current_row, column=1, value="C").font = font_13
     ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=2, value="Đã thanh toán").font = font_13
-    ws.cell(row=current_row, column=14, value=advance_payment).font = font_13
+    ws.cell(row=current_row, column=14, value="0").font = font_13
 
     current_row += 1
     ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=1, value="Tổng tiền thanh toán (A+B-C)").font = font_13
-    ws.cell(row=current_row, column=14, value=quotation.grand_total + additional_fees - advance_payment).font = font_13
+    ws.cell(row=current_row, column=14, value=quotation.total).font = font_13
 
     for col in [1, 2, 14]:
         for r in range(current_row - 3, current_row + 1):
