@@ -5,7 +5,6 @@ import requests
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
-
 @frappe.whitelist()
 def export_excel_api(quotation_name):
     quotation = frappe.get_doc("Quotation", quotation_name)
@@ -30,13 +29,13 @@ def export_excel_api(quotation_name):
     logo_path = frappe.get_site_path("public", "files", "logo.jpg")
     if os.path.exists(logo_path):
         logo_img = XLImage(logo_path)
-        logo_img.width = 160
-        logo_img.height = 40
+        logo_img.width = 200
+        logo_img.height = 70
         ws.add_image(logo_img, "A1")
 
     ws.merge_cells("C1:N1")
     ws["C1"] = "CÔNG TY PHÁT TRIỂN THƯƠNG MẠI THẾ KỶ"
-    ws["C1"].font = bold_font
+    ws["C1"].font = Font(name="Times New Roman", size=18, bold=True)
     ws["C1"].alignment = center_alignment
 
     info = [
@@ -52,42 +51,34 @@ def export_excel_api(quotation_name):
         ws[a_cell].alignment = left_alignment
         ws[b_cell].alignment = left_alignment
 
-    ws.merge_cells("A6:N6")
-    ws["A6"] = "PHIẾU BÁO GIÁ BÁN HÀNG"
-    ws["A6"].font = bold_font
-    ws["A6"].alignment = center_alignment
+    ws.merge_cells("C6:N6")
+    ws["C6"] = "PHIẾU BÁO GIÁ BÁN HÀNG"
+    ws["C6"].font = Font(name="Times New Roman", size=16, bold=True)
+    ws["C6"].alignment = center_alignment
 
-    ws.merge_cells("A8:N8")
-    ws["A8"] = "Lời đầu tiên , xin cảm ơn Quý khách hàng đã quan tâm đến sản phẩm nội thất của công ty chúng tôi."
-    ws["A8"].font = font_13
-    ws["A8"].alignment = left_alignment
+    ws["A8"] = "Khách hàng :"
+    ws["B8"] = customer.customer_name or ""
+    ws["A9"] = "Địa chỉ :"
+    address = frappe.db.get_value("Dynamic Link", {"link_doctype": "Customer", "link_name": customer.name, "parenttype": "Address"}, "parent")
+    if address:
+        address_doc = frappe.get_doc("Address", address)
+        ws["B9"] = address_doc.address_line1 or ""
 
-    ws.merge_cells("A9:N9")
-    ws["A9"] = "Chúng tôi xin gửi đến Quý khách hàng Bảng báo giá như sau :"
-    ws["A9"].font = font_13
-    ws["A9"].alignment = left_alignment
+    ws["I8"] = "Điện thoại :"
+    contact = frappe.db.get_value("Dynamic Link", {"link_doctype": "Customer", "link_name": customer.name, "parenttype": "Contact"}, "parent")
+    if contact:
+        contact_doc = frappe.get_doc("Contact", contact)
+        ws["J8"] = contact_doc.mobile_no or contact_doc.phone or ""
 
-    ws["A10"] = "Khách hàng :"
-    ws["B10"] = customer.customer_name or ""
-    ws["I10"] = "Điện thoại :"
-    contact_name = frappe.db.get_value("Dynamic Link", {
-        "link_doctype": "Customer",
-        "link_name": customer.name,
-        "parenttype": "Contact"
-    }, "parent")
-    if contact_name:
-        contact = frappe.get_doc("Contact", contact_name)
-        ws["J10"] = contact.mobile_no or contact.phone or ""
+    ws.merge_cells("A10:N10")
+    ws["A10"] = "Lời đầu tiên , xin cảm ơn Quý khách hàng đã quan tâm đến sản phẩm nội thất của công ty chúng tôi."
+    ws["A10"].font = font_13
+    ws["A10"].alignment = left_alignment
 
-    ws["A11"] = "Địa chỉ :"
-    address_name = frappe.db.get_value("Dynamic Link", {
-        "link_doctype": "Customer",
-        "link_name": customer.name,
-        "parenttype": "Address"
-    }, "parent")
-    if address_name:
-        address = frappe.get_doc("Address", address_name)
-        ws["B11"] = address.address_line1 or ""
+    ws.merge_cells("A11:N11")
+    ws["A11"] = "Chúng tôi xin gửi đến Quý khách hàng Bảng báo giá như sau :"
+    ws["A11"].font = font_13
+    ws["A11"].alignment = left_alignment
 
     headers = ["STT", "Tên sản phẩm", "", "", "Kích thước sản phẩm", "", "Mã hàng", "SL", "Hình ảnh", "", "Đơn vị", "Đơn giá", "CK (%)", "Thành tiền"]
     row_num = 13
