@@ -4,7 +4,7 @@ import os
 import requests
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
-from openpyxl.styles import Alignment, Font, Border, Side
+from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
 from datetime import datetime
 import tempfile
 
@@ -35,6 +35,8 @@ def export_excel_api(quotation_name):
     )
     center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    # Background color for headers (light blue #DDEBF7)
+    header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
 
     # Logo (Optional)
     logo_path = frappe.get_site_path("public", "files", "logo.jpg")
@@ -49,11 +51,12 @@ def export_excel_api(quotation_name):
         except Exception as e:
             frappe.log_error(f"Failed to add logo: {str(e)}")
 
-    # Company Details
-    ws.merge_cells("C1:N1")
-    ws["C1"] = "CÔNG TY PHÁT TRIỂN THƯƠNG MẠI THẾ KỶ"
-    ws["C1"].font = font_18
-    ws["C1"].alignment = center_alignment
+    # Company Details with Background Color (Moved to D2:H3)
+    ws.merge_cells("D2:H3")
+    ws["D2"] = "CÔNG TY PHÁT TRIỂN THƯƠNG MẠI THẾ KỶ"
+    ws["D2"].font = font_18
+    ws["D2"].alignment = center_alignment
+    ws["D2"].fill = header_fill
 
     ws.merge_cells("A5:B5")
     ws["A5"] = "Địa chỉ:"
@@ -74,7 +77,7 @@ def export_excel_api(quotation_name):
         ws[cell].font = font_13
         ws[cell].alignment = left_alignment
 
-    # Title= Title
+    # Title
     ws.merge_cells("A9:N9")
     ws["A9"] = "PHIẾU BÁO GIÁ BÁN HÀNG"
     ws["A9"].font = font_16
@@ -132,7 +135,7 @@ def export_excel_api(quotation_name):
         ws[cell].font = font_13
         ws[cell].alignment = left_alignment
 
-    # Table Headers
+    # Table Headers with Background Color
     headers = [
         "STT", "Tên sản phẩm", "", "", "Kích thước sản phẩm", "", "Mã hàng", 
         "SL", "Hình ảnh", "", "Đơn vị", "Đơn giá", "CK (%)", "Thành tiền"
@@ -144,6 +147,7 @@ def export_excel_api(quotation_name):
         cell.font = font_13
         cell.alignment = center_alignment
         cell.border = thin_border
+        cell.fill = header_fill
 
     ws.merge_cells(f"B{row_num}:D{row_num}")
     ws.merge_cells(f"E{row_num}:F{row_num}")
@@ -166,7 +170,7 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=13, value=item.discount_percentage or 0).font = font_13
         ws.cell(row=row, column=14, value=item.amount or 0).font = font_13
 
-        # Image Handling
+        # Image Handling with Centering
         if item.image:
             try:
                 image_path = None
@@ -184,8 +188,11 @@ def export_excel_api(quotation_name):
                     img = XLImage(image_path)
                     img.width = 80
                     img.height = 80
+                    # Center the image in the merged I:J cell
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 80
+                    # Adjust anchor to center the image
+                    img.anchor = f"I{row}"
             except Exception as e:
                 frappe.log_error(f"Failed to add image for item {item.item_code}: {str(e)}")
 
@@ -193,35 +200,57 @@ def export_excel_api(quotation_name):
             ws.cell(row=row, column=col).border = thin_border
             ws.cell(row=row, column=col).alignment = center_alignment
 
-    # Totals
+    # Totals (Formatted as a Table)
     current_row = row_num + len(quotation.items) + 1
-    
+    additional_fees = 0  # Default to 0 if field doesn't exist
+    advance_payment = 0  # Default to 0 if field doesn't exist
+
+    # Row for "Tổng cộng"
     ws.cell(row=current_row, column=1, value="A").font = font_13
+    ws.cell(row=current_row, column=1).border = thin_border
     ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=2, value="Tổng cộng").font = font_13
-    ws.cell(row=current_row, column=14, value=quotation.total).font = font_13
+    for col in range(2, 14):
+        ws.cell(row=current_row, column=col).border = thin_border
+    ws.cell(row=current_row, column=14, value=quotation.grand_total).font = font_13
+    ws.cell(row=current_row, column=14).border = thin_border
 
     current_row += 1
+    # Row for "Phụ phí"
     ws.cell(row=current_row, column=1, value="B").font = font_13
+    ws.cell(row=current_row, column=1).border = thin_border
     ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=2, value="Phụ phí").font = font_13
-    ws.cell(row=current_row, column=14, value="0").font = font_13
+    for col in range(2, 14):
+        ws.cell(row=current_row, column=col).border = thin_border
+    ws.cell(row=current_row, column=14, value='0').font = font_13
+    ws.cell(row=current_row, column=14).border = thin_border
 
     current_row += 1
+    # Row for "Đã thanh toán"
     ws.cell(row=current_row, column=1, value="C").font = font_13
+    ws.cell(row=current_row, column=1).border = thin_border
     ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=2, value="Đã thanh toán").font = font_13
-    ws.cell(row=current_row, column=14, value="0").font = font_13
+    for col in range(2, 14):
+        ws.cell(row=current_row, column=col).border = thin_border
+    ws.cell(row=current_row, column=14, value='0').font = font_13
+    ws.cell(row=current_row, column=14).border = thin_border
 
     current_row += 1
+    # Row for "Tổng tiền thanh toán (A+B-C)"
     ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=13)
     ws.cell(row=current_row, column=1, value="Tổng tiền thanh toán (A+B-C)").font = font_13
-    ws.cell(row=current_row, column=14, value=quotation.total).font = font_13
+    for col in range(1, 14):
+        ws.cell(row=current_row, column=col).border = thin_border
+    ws.cell(row=current_row, column=14, value=quotation.grand_total).font = font_13
+    ws.cell(row=current_row, column=14).border = thin_border
 
-    for col in [1, 2, 14]:
-        for r in range(current_row - 3, current_row + 1):
-            ws.cell(row=r, column=col).border = thin_border
-            ws.cell(row=r, column=col).alignment = left_alignment if col < 14 else center_alignment
+    # Apply alignment to totals section
+    for r in range(current_row - 3, current_row + 1):
+        ws.cell(row=r, column=1).alignment = left_alignment if r == current_row else center_alignment
+        ws.cell(row=r, column=2).alignment = left_alignment
+        ws.cell(row=r, column=14).alignment = center_alignment
 
     # Footer
     footer_row = current_row + 2
@@ -267,9 +296,9 @@ def export_excel_api(quotation_name):
     ws.cell(row=footer_row + 6, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
     ws.cell(row=footer_row + 6, column=1).alignment = left_alignment
 
-    # Set Column Widths
+    # Set Column Widths (Remove A width restriction)
     column_widths = {
-        "A": 5, "B": 20, "C": 5, "D": 5, "E": 15, "F": 5, "G": 10,
+        "B": 20, "C": 5, "D": 5, "E": 15, "F": 5, "G": 10,
         "H": 5, "I": 15, "J": 5, "K": 8, "L": 12, "M": 8, "N": 12
     }
     for col, width in column_widths.items():
