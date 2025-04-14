@@ -217,7 +217,7 @@ def export_excel_api(quotation_name):
     ws.cell(row=current_row, column=2, value="Phụ phí").font = font_13
     for col in range(2, 14):
         ws.cell(row=current_row, column=col).border = thin_border
-    ws.cell(row=current_row, column=14, value=additional_fees).font = font_13
+    ws.cell(row=current_row, column=14, value="").font = font_13
     ws.cell(row=current_row, column=14).border = thin_border
 
     current_row += 1
@@ -227,7 +227,7 @@ def export_excel_api(quotation_name):
     ws.cell(row=current_row, column=2, value="Đã thanh toán").font = font_13
     for col in range(2, 14):
         ws.cell(row=current_row, column=col).border = thin_border
-    ws.cell(row=current_row, column=14, value=advance_payment).font = font_13
+    ws.cell(row=current_row, column=14, value="0").font = font_13
     ws.cell(row=current_row, column=14).border = thin_border
 
     current_row += 1
@@ -235,7 +235,7 @@ def export_excel_api(quotation_name):
     ws.cell(row=current_row, column=1, value="Tổng tiền thanh toán (A+B-C)").font = font_13
     for col in range(1, 14):
         ws.cell(row=current_row, column=col).border = thin_border
-    ws.cell(row=current_row, column=14, value=quotation.grand_total + additional_fees - advance_payment).font = font_13
+    ws.cell(row=current_row, column=14, value=quotation.grand_total).font = font_13
     ws.cell(row=current_row, column=14).border = thin_border
 
     for r in range(current_row - 3, current_row + 1):
