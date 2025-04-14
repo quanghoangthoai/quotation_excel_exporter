@@ -29,9 +29,12 @@ def export_excel_api(quotation_name):
     logo_path = frappe.get_site_path("public", "files", "logo.jpg")
     if os.path.exists(logo_path):
         logo_img = XLImage(logo_path)
-        logo_img.width = 200
-        logo_img.height = 70
+        logo_img.width = 130
+        logo_img.height = 100
         ws.add_image(logo_img, "A1")
+    ws.row_dimensions[1].height = 50
+    ws.row_dimensions[2].height = 50
+    ws.row_dimensions[3].height = 50
 
     ws.merge_cells("C1:N1")
     ws["C1"] = "CÔNG TY PHÁT TRIỂN THƯƠNG MẠI THẾ KỶ"
