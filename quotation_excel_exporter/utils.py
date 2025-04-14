@@ -168,7 +168,7 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=7, value=item.item_code or "").font = font_13
         ws.cell(row=row, column=8, value=item.qty or 0).font = font_13
         ws.merge_cells(f"I{row}:J{row}")
-        ws.cell(row=row, column=11, value=item.uom or "Bộ").font = font_13
+        ws.cell(row=row, column=11, value="Bộ").font = font_13
         ws.cell(row=row, column=12, value=item.rate or 0).font = font_13
         ws.cell(row=row, column=13, value=item.discount_percentage or 0).font = font_13
         ws.cell(row=row, column=14, value=item.amount or 0).font = font_13
