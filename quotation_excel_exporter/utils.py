@@ -38,7 +38,7 @@ def export_excel_api(quotation_name):
     left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
     # Logo (Optional)
-    logo_path = frappe.get_site_path("public", "files", "logo.jpg")
+    logo_path = frappe.get_site_path("public", "files", "z6473642459612_58e86d169bb72c78b360392b4f81e8bae2152f.jpg")
     if os.path.exists(logo_path):
         try:
             logo_img = XLImage(logo_path)
