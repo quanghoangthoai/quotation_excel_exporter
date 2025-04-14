@@ -22,11 +22,16 @@ def export_excel_api(quotation_name):
     center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
+    col_widths = [5, 30, 5, 5, 15, 5, 15, 5, 12, 5, 10, 12, 10, 15]
+    for i, width in enumerate(col_widths, 1):
+        col_letter = chr(64 + i) if i <= 26 else 'A' + chr(64 + (i - 26))
+        ws.column_dimensions[col_letter].width = width
+
     logo_path = frappe.get_site_path("public", "files", "logo.jpg")
     if os.path.exists(logo_path):
         logo_img = XLImage(logo_path)
-        logo_img.width = 180
-        logo_img.height = 60
+        logo_img.width = 160
+        logo_img.height = 40
         ws.add_image(logo_img, "A1")
 
     ws.merge_cells("C1:N1")
@@ -34,15 +39,18 @@ def export_excel_api(quotation_name):
     ws["C1"].font = bold_font
     ws["C1"].alignment = center_alignment
 
-    ws["A3"] = "Địa chỉ :"
-    ws["B3"] = "Số 30 đường 16, KĐT Đông Tăng Long, TP Thủ Đức , HCM"
-    ws["A4"] = "Hotline :"
-    ws["B4"] = "0768.927..526 - 033.566.9526"
-    ws["A5"] = "Website :"
-    ws["B5"] = "https://thehome.com.vn/"
-    for cell in ["A3", "B3", "A4", "B4", "A5", "B5"]:
-        ws[cell].font = font_13
-        ws[cell].alignment = left_alignment
+    info = [
+        ("A3", "Địa chỉ :", "B3", "Số 30 đường 16, KĐT Đông Tăng Long, TP Thủ Đức , HCM"),
+        ("A4", "Hotline :", "B4", "0768.927.526 - 033.566.9526"),
+        ("A5", "Website :", "B5", "https://thehome.com.vn/")
+    ]
+    for a_cell, a_text, b_cell, b_text in info:
+        ws[a_cell] = a_text
+        ws[b_cell] = b_text
+        ws[a_cell].font = font_13
+        ws[b_cell].font = font_13
+        ws[a_cell].alignment = left_alignment
+        ws[b_cell].alignment = left_alignment
 
     ws.merge_cells("A6:N6")
     ws["A6"] = "PHIẾU BÁO GIÁ BÁN HÀNG"
@@ -97,24 +105,24 @@ def export_excel_api(quotation_name):
 
     for i, item in enumerate(quotation.items, 1):
         row = row_num + i
-        for col in range(1, 15):
-            cell = ws.cell(row=row, column=col)
-            cell.border = thin_border
-            cell.font = font_13
-            cell.alignment = center_alignment if col in [1, 8, 11, 12, 13, 14] else left_alignment
-
         ws.cell(row=row, column=1, value=i)
-        ws.merge_cells(f"B{row}:D{row}")
+        ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
         ws.cell(row=row, column=2, value=item.item_name)
-        ws.merge_cells(f"E{row}:F{row}")
+        ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
         ws.cell(row=row, column=5, value=item.size or "")
         ws.cell(row=row, column=7, value=item.item_code)
         ws.cell(row=row, column=8, value=item.qty)
-        ws.merge_cells(f"I{row}:J{row}")
+        ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
         ws.cell(row=row, column=11, value="Bộ")
         ws.cell(row=row, column=12, value=item.rate)
         ws.cell(row=row, column=13, value=item.discount_percentage)
         ws.cell(row=row, column=14, value=item.amount)
+
+        for col in range(1, 15):
+            cell = ws.cell(row=row, column=col)
+            cell.font = font_13
+            cell.border = thin_border
+            cell.alignment = center_alignment if col in [1, 8, 11, 12, 13, 14] else left_alignment
 
         if item.image:
             try:
@@ -143,63 +151,49 @@ def export_excel_api(quotation_name):
         else:
             ws.row_dimensions[row].height = 20
 
-    current_row = row_num + len(quotation.items) + 1
-    ws.cell(row=current_row, column=1, value="A").font = font_13
-    ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=2, value="Tổng cộng").font = font_13
-    ws.cell(row=current_row, column=14, value=quotation.total).font = font_13
+    row = row_num + len(quotation.items) + 1
+    ws.cell(row=row, column=1, value="A")
+    ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=13)
+    ws.cell(row=row, column=2, value="Tổng cộng")
+    ws.cell(row=row, column=14, value=quotation.total)
 
-    current_row += 1
-    ws.cell(row=current_row, column=1, value="B").font = font_13
-    ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=2, value="Phụ phí").font = font_13
-    ws.cell(row=current_row, column=14, value=0).font = font_13
+    ws.cell(row=row+1, column=1, value="B")
+    ws.merge_cells(start_row=row+1, start_column=2, end_row=row+1, end_column=13)
+    ws.cell(row=row+1, column=2, value="Phụ phí")
+    ws.cell(row=row+1, column=14, value=0)
 
-    current_row += 1
-    ws.cell(row=current_row, column=1, value="C").font = font_13
-    ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=2, value="Đã thanh toán").font = font_13
-    ws.cell(row=current_row, column=14, value=0).font = font_13
+    ws.cell(row=row+2, column=1, value="C")
+    ws.merge_cells(start_row=row+2, start_column=2, end_row=row+2, end_column=13)
+    ws.cell(row=row+2, column=2, value="Đã thanh toán")
+    ws.cell(row=row+2, column=14, value=0)
 
-    current_row += 1
-    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=1, value="Tổng tiền thanh toán (A+B-C)").font = font_13
-    ws.cell(row=current_row, column=14, value=quotation.total).font = font_13
+    ws.merge_cells(start_row=row+3, start_column=1, end_row=row+3, end_column=13)
+    ws.cell(row=row+3, column=1, value="Tổng tiền thanh toán (A+B-C)")
+    ws.cell(row=row+3, column=14, value=quotation.total)
 
-    current_row += 2
-    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
-    ws.cell(row=current_row, column=1, value="Khách hàng").font = bold_font
-    ws.cell(row=current_row, column=1).alignment = center_alignment
+    ws.merge_cells(start_row=row+5, start_column=1, end_row=row+5, end_column=4)
+    ws.cell(row=row+5, column=1, value="Khách hàng").font = bold_font
+    ws.merge_cells(start_row=row+5, start_column=6, end_row=row+5, end_column=9)
+    ws.cell(row=row+5, column=6, value="Người giao hàng").font = bold_font
+    ws.merge_cells(start_row=row+5, start_column=11, end_row=row+5, end_column=14)
+    ws.cell(row=row+5, column=11, value="Ngày     Tháng     Năm").font = bold_font
 
-    ws.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=9)
-    ws.cell(row=current_row, column=6, value="Người giao hàng").font = bold_font
-    ws.cell(row=current_row, column=6).alignment = center_alignment
+    ws.merge_cells(start_row=row+6, start_column=1, end_row=row+6, end_column=4)
+    ws.cell(row=row+6, column=1, value="(Ký và ghi rõ họ tên)")
+    ws.merge_cells(start_row=row+6, start_column=6, end_row=row+6, end_column=9)
+    ws.cell(row=row+6, column=6, value="(Ký và ghi rõ họ tên)")
 
-    ws.merge_cells(start_row=current_row, start_column=11, end_row=current_row, end_column=14)
-    ws.cell(row=current_row, column=11, value="Ngày     Tháng     Năm").font = bold_font
-    ws.cell(row=current_row, column=11).alignment = center_alignment
+    ws.merge_cells(start_row=row+8, start_column=1, end_row=row+8, end_column=14)
+    ws.cell(row=row+8, column=1, value="Lưu ý :     Không đổi trả sản mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = bold_font
 
-    current_row += 1
-    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
-    ws.cell(row=current_row, column=1, value="(Ký và ghi rõ họ tên)").font = font_13
-    ws.cell(row=current_row, column=1).alignment = center_alignment
+    ws.merge_cells(start_row=row+9, start_column=1, end_row=row+9, end_column=14)
+    ws.cell(row=row+9, column=1, value="Hình thức thanh toán:").font = font_13
 
-    ws.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=9)
-    ws.cell(row=current_row, column=6, value="(Ký và ghi rõ họ tên)").font = font_13
-    ws.cell(row=current_row, column=6).alignment = center_alignment
+    ws.merge_cells(start_row=row+10, start_column=1, end_row=row+10, end_column=14)
+    ws.cell(row=row+10, column=1, value="- Thanh toán 100% giá trị đơn hàng khi nhận được hàng").font = font_13
 
-    current_row += 2
-    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=14)
-    ws.cell(row=current_row, column=1, value="Lưu ý :     Không đổi trả sản mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = bold_font
-
-    ws.merge_cells(start_row=current_row+1, start_column=1, end_row=current_row+1, end_column=14)
-    ws.cell(row=current_row+1, column=1, value="Hình thức thanh toán:").font = font_13
-
-    ws.merge_cells(start_row=current_row+2, start_column=1, end_row=current_row+2, end_column=14)
-    ws.cell(row=current_row+2, column=1, value="- Thanh toán 100% giá trị đơn hàng khi nhận được hàng").font = font_13
-
-    ws.merge_cells(start_row=current_row+3, start_column=1, end_row=current_row+3, end_column=14)
-    ws.cell(row=current_row+3, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
+    ws.merge_cells(start_row=row+11, start_column=1, end_row=row+11, end_column=14)
+    ws.cell(row=row+11, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
 
     output = io.BytesIO()
     wb.save(output)
