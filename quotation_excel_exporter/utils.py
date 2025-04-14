@@ -192,6 +192,15 @@ def export_excel_api(quotation_name):
     ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=14)
     ws.cell(row=current_row, column=1, value="Lưu ý :     Không đổi trả sản mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = bold_font
 
+    ws.merge_cells(start_row=current_row+1, start_column=1, end_row=current_row+1, end_column=14)
+    ws.cell(row=current_row+1, column=1, value="Hình thức thanh toán:").font = font_13
+
+    ws.merge_cells(start_row=current_row+2, start_column=1, end_row=current_row+2, end_column=14)
+    ws.cell(row=current_row+2, column=1, value="- Thanh toán 100% giá trị đơn hàng khi nhận được hàng").font = font_13
+
+    ws.merge_cells(start_row=current_row+3, start_column=1, end_row=current_row+3, end_column=14)
+    ws.cell(row=current_row+3, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
+
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
