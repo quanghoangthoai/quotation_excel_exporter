@@ -204,8 +204,12 @@ def export_excel_api(quotation_name):
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 100
                     img.anchor = f"I{row}"
-            except Exception as e:
-                frappe.log_error(f"Failed to add image for item {item.item_code}: {str(e)}")
+                     except Exception as e:
+                      err_msg = f"Failed to add image for item {item.item_code}: {e}"
+                     frappe.log_error(
+                        message=err_msg,
+                        title=f"Excel Exporter Image Error [{item.item_code}]"
+                   )
 
         for col in range(1, 15):
             ws.cell(row=row, column=col).border = thin_border
