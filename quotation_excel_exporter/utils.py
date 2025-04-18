@@ -37,7 +37,6 @@ def export_excel_api(quotation_name):
     center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
     header_fill = PatternFill(start_color="FF9933", end_color="FF9933", fill_type="solid")
-    # Currency format for VND
     currency_format = '#,##0_₫'
 
     # Logo (Optional)
@@ -53,7 +52,10 @@ def export_excel_api(quotation_name):
             ws.row_dimensions[2].height = 20
             ws.row_dimensions[3].height = 20
         except Exception as e:
-            frappe.log_error(f"Failed to add logo: {str(e)}")
+            frappe.log_error(
+                message=f"Failed to add logo: {e}",
+                title="Excel Exporter Logo Error"
+            )
 
     # Company Details
     ws.merge_cells("D2:H3")
@@ -65,12 +67,10 @@ def export_excel_api(quotation_name):
     ws["A5"] = "Địa chỉ:"
     ws.merge_cells("C5:N5")
     ws["C5"] = "Số 30 đường 16, KĐT Đông Tăng Long, TP Thủ Đức, HCM"
-    
     ws.merge_cells("A6:B6")
     ws["A6"] = "Hotline:"
     ws.merge_cells("C6:N6")
     ws["C6"] = "0768.927.526 - 033.566.9526"
-    
     ws.merge_cells("A7:B7")
     ws["A7"] = "Website:"
     ws.merge_cells("C7:N7")
@@ -91,7 +91,6 @@ def export_excel_api(quotation_name):
     ws["A11"] = "Lời đầu tiên, xin cảm ơn Quý khách hàng đã quan tâm đến sản phẩm nội thất của công ty chúng tôi."
     ws["A11"].font = font_13
     ws["A11"].alignment = left_alignment
-
     ws.merge_cells("A12:N12")
     ws["A12"] = "Chúng tôi xin gửi đến Quý khách hàng Bảng báo giá như sau:"
     ws["A12"].font = font_13
@@ -102,7 +101,6 @@ def export_excel_api(quotation_name):
     ws["A13"].font = font_13_bold
     ws.merge_cells("B13:H13")
     ws["B13"] = customer.customer_name if customer else ""
-    
     ws["I13"] = "Điện thoại:"
     ws.merge_cells("J13:N13")
     phone = ""
@@ -141,47 +139,52 @@ def export_excel_api(quotation_name):
 
     # Table Headers
     headers = [
-        "STT", "Tên sản phẩm", "", "", "Kích thước sản phẩm", "", "Mã hàng", 
+        "STT", "Tên sản phẩm", "", "", "Kích thước sản phẩm", "", "Mã hàng",
         "SL", "Hình ảnh", "", "Đơn vị", "Đơn giá", "CK (%)", "Thành tiền"
     ]
-    row_num = 16
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=row_num, column=col)
+    header_row = 16
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=header_row, column=col_idx)
         cell.value = header
         cell.font = font_13_bold
         cell.alignment = center_alignment
         cell.border = thin_border
         cell.fill = header_fill
 
-    ws.merge_cells(f"B{row_num}:D{row_num}")
-    ws.merge_cells(f"E{row_num}:F{row_num}")
-    ws.merge_cells(f"I{row_num}:J{row_num}")
+    ws.merge_cells(f"B{header_row}:D{header_row}")
+    ws.merge_cells(f"E{header_row}:F{header_row}")
+    ws.merge_cells(f"I{header_row}:J{header_row}")
 
     # Table Data
     temp_files = []
-    for i, item in enumerate(quotation.items, 1):
-        row = row_num + i
-        ws.cell(row=row, column=1, value=i).font = font_13
+    for idx, item in enumerate(quotation.items, 1):
+        row = header_row + idx
+        # STT
+        ws.cell(row=row, column=1, value=idx).font = font_13
+        # Item Name
         ws.merge_cells(f"B{row}:D{row}")
         ws.cell(row=row, column=2, value=item.item_name or "").font = font_13
+        # Size
         ws.merge_cells(f"E{row}:F{row}")
         ws.cell(row=row, column=5, value=frappe.db.get_value("Quotation Item", item.name, "size") or "").font = font_13
+        # Item Code
         ws.cell(row=row, column=7, value=item.item_code or "").font = font_13
+        # Quantity
         ws.cell(row=row, column=8, value=item.qty or 0).font = font_13
-        ws.merge_cells(f"I{row}:J{row}")
-        ws.cell(row=row, column=11, value="Bộ").font = font_13
-        # Đơn giá (rate) with currency format
+        # Unit
+        ws.cell(row=row, column=11, value=item.uom or "").font = font_13
+        # Rate with currency format
         rate_cell = ws.cell(row=row, column=12)
         rate_cell.value = item.rate or 0
         rate_cell.number_format = currency_format
         rate_cell.font = font_13
-        # CK (%) (discount_percentage)
+        # Discount Percentage
         ws.cell(row=row, column=13, value=item.discount_percentage or 0).font = font_13
-        # Thành tiền (amount) with formula
-        amount_cell = ws.cell(row=row, column=14)
-        amount_cell.value = f"=L{row}*H{row}*(1-M{row}/100)"
-        amount_cell.number_format = currency_format
-        amount_cell.font = font_13
+        # Amount formula
+        amt_cell = ws.cell(row=row, column=14)
+        amt_cell.value = f"=L{row}*H{row}*(1-M{row}/100)"
+        amt_cell.number_format = currency_format
+        amt_cell.font = font_13
 
         # Image Handling
         if item.image:
@@ -190,12 +193,12 @@ def export_excel_api(quotation_name):
                 if item.image.startswith("/files/"):
                     image_path = frappe.get_site_path("public", item.image.lstrip("/"))
                 elif item.image.startswith("http"):
-                    response = requests.get(item.image, timeout=5)
-                    if response.status_code == 200:
-                        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                        tmp_file.write(response.content)
-                        tmp_file.close()
-                        image_path = tmp_file.name
+                    resp = requests.get(item.image, timeout=5)
+                    if resp.status_code == 200:
+                        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                        tmp.write(resp.content)
+                        tmp.close()
+                        image_path = tmp.name
                         temp_files.append(image_path)
                 if image_path and os.path.exists(image_path):
                     img = XLImage(image_path)
@@ -203,127 +206,91 @@ def export_excel_api(quotation_name):
                     img.height = 90
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 100
-                    img.anchor = f"I{row}"
-                     except Exception as e:
-                      err_msg = f"Failed to add image for item {item.item_code}: {e}"
-                     frappe.log_error(
-                        message=err_msg,
-                        title=f"Excel Exporter Image Error [{item.item_code}]"
-                   )
+            except Exception as e:
+                err_msg = f"Failed to add image for item {item.item_code}: {e}"
+                frappe.log_error(
+                    message=err_msg,
+                    title=f"Excel Exporter Image Error [{item.item_code}]"
+                )
 
+        # Apply border and alignment to all cells in the row
         for col in range(1, 15):
-            ws.cell(row=row, column=col).border = thin_border
-            ws.cell(row=row, column=col).alignment = center_alignment
+            cell = ws.cell(row=row, column=col)
+            cell.border = thin_border
+            cell.alignment = center_alignment
 
-    # Totals
-    current_row = row_num + len(quotation.items) + 1
+    # Totals and Footer Rows
+    start_data_row = header_row + 1
+    end_data_row = header_row + len(quotation.items)
+    total_row = end_data_row + 1
 
-    ws.cell(row=current_row, column=1, value="A").font = font_13
-    ws.cell(row=current_row, column=1).border = thin_border
-    ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=2, value="Tổng cộng").font = font_13
-    for col in range(2, 14):
-        ws.cell(row=current_row, column=col).border = thin_border
-    total_cell = ws.cell(row=current_row, column=14)
-    total_cell.value = f"=SUM(N{row_num + 1}:N{row_num + len(quotation.items)})"
+    # A: Subtotal
+    ws.cell(row=total_row, column=1, value="A").font = font_13
+    ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=13)
+    ws.cell(row=total_row, column=2, value="Tổng cộng").font = font_13
+    total_cell = ws.cell(row=total_row, column=14)
+    total_cell.value = f"=SUM(N{start_data_row}:N{end_data_row})"
     total_cell.number_format = currency_format
     total_cell.font = font_13
-    total_cell.border = thin_border
+    for col in range(1, 15):
+        ws.cell(row=total_row, column=col).border = thin_border
 
-    current_row += 1
-    ws.cell(row=current_row, column=1, value="B").font = font_13
-    ws.cell(row=current_row, column=1).border = thin_border
-    ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=2, value="Phụ phí").font = font_13
-    for col in range(2, 14):
-        ws.cell(row=current_row, column=col).border = thin_border
-    ws.cell(row=current_row, column=14, value="").font = font_13
-    ws.cell(row=current_row, column=14).border = thin_border
+    # B: Additional Charges
+    add_row = total_row + 1
+    ws.cell(row=add_row, column=1, value="B").font = font_13
+    ws.merge_cells(start_row=add_row, start_column=2, end_row=add_row, end_column=13)
+    ws.cell(row=add_row, column=2, value="Phụ phí").font = font_13
+    for col in range(1, 15):
+        ws.cell(row=add_row, column=col).border = thin_border
 
-    current_row += 1
-    ws.cell(row=current_row, column=1, value="C").font = font_13
-    ws.cell(row=current_row, column=1).border = thin_border
-    ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=2, value="Đã thanh toán").font = font_13
-    for col in range(2, 14):
-        ws.cell(row=current_row, column=col).border = thin_border
-    ws.cell(row=current_row, column=14, value=0).font = font_13
-    ws.cell(row=current_row, column=14).number_format = currency_format
-    ws.cell(row=current_row, column=14).border = thin_border
+    # C: Paid Amount
+    paid_row = add_row + 1
+    ws.cell(row=paid_row, column=1, value="C").font = font_13
+    ws.merge_cells(start_row=paid_row, start_column=2, end_row=paid_row, end_column=13)
+    ws.cell(row=paid_row, column=2, value="Đã thanh toán").font = font_13
+    paid_amt_cell = ws.cell(row=paid_row, column=14)
+    paid_amt_cell.value = 0
+    paid_amt_cell.number_format = currency_format
+    paid_amt_cell.font = font_13
+    for col in range(1, 15):
+        ws.cell(row=paid_row, column=col).border = thin_border
 
-    current_row += 1
-    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=13)
-    ws.cell(row=current_row, column=1, value="Tổng tiền thanh toán (A+B-C)").font = font_13
-    for col in range(1, 14):
-        ws.cell(row=current_row, column=col).border = thin_border
-    final_total_cell = ws.cell(row=current_row, column=14)
-    final_total_cell.value = f"=N{current_row - 3}+N{current_row - 2}-N{current_row - 1}"
-    final_total_cell.number_format = currency_format
-    final_total_cell.font = font_13
-    final_total_cell.border = thin_border
+    # Final Total (A+B-C)
+    final_row = paid_row + 1
+    ws.merge_cells(start_row=final_row, start_column=1, end_row=final_row, end_column=13)
+    ws.cell(row=final_row, column=1, value="Tổng tiền thanh toán (A+B-C)").font = font_13
+    final_cell = ws.cell(row=final_row, column=14)
+    final_cell.value = f"=N{total_row}+N{add_row}-N{paid_row}"
+    final_cell.number_format = currency_format
+    final_cell.font = font_13
+    for col in range(1, 15):
+        ws.cell(row=final_row, column=col).border = thin_border
 
-    for r in range(current_row - 3, current_row + 1):
-        ws.cell(row=r, column=1).alignment = left_alignment if r == current_row else center_alignment
-        ws.cell(row=r, column=2).alignment = left_alignment
-        ws.cell(row=r, column=14).alignment = center_alignment
-
-    # Footer
-    footer_row = current_row + 2
-    ws.merge_cells(start_row=footer_row, start_column=1, end_row=footer_row, end_column=5)
-    ws.cell(row=footer_row, column=1, value="Khách hàng").font = font_13_bold
-    ws.cell(row=footer_row, column=1).alignment = center_alignment
-
-    ws.merge_cells(start_row=footer_row, start_column=6, end_row=footer_row, end_column=10)
-    ws.cell(row=footer_row, column=6, value="Người giao hàng").font = font_13_bold
-    ws.cell(row=footer_row, column=6).alignment = center_alignment
-
-    ws.merge_cells(start_row=footer_row, start_column=11, end_row=footer_row, end_column=14)
+    # Footer Signatures and Notes
+    footer_start = final_row + 2
+    ws.merge_cells(start_row=footer_start, start_column=1, end_row=footer_start, end_column=5)
+    ws.cell(row=footer_start, column=1, value="Khách hàng").font = font_13_bold
+    ws.cell(row=footer_start, column=1).alignment = center_alignment
+    ws.merge_cells(start_row=footer_start, start_column=6, end_row=footer_start, end_column=10)
+    ws.cell(row=footer_start, column=6, value="Người giao hàng").font = font_13_bold
+    ws.cell(row=footer_start, column=6).alignment = center_alignment
+    ws.merge_cells(start_row=footer_start, start_column=11, end_row=footer_start, end_column=14)
     date = quotation.transaction_date or datetime.now()
-    ws.cell(row=footer_row, column=11, value=f"Ngày {date.day:02d} Tháng {date.month:02d} Năm {date.year}").font = font_13_bold
-    ws.cell(row=footer_row, column=11).alignment = center_alignment
+    ws.cell(row=footer_start, column=11, value=f"Ngày {date.day:02d} Tháng {date.month:02d} Năm {date.year}").font = font_13_bold
+    ws.cell(row=footer_start, column=11).alignment = center_alignment
 
-    ws.merge_cells(start_row=footer_row + 1, start_column=1, end_row=footer_row + 1, end_column=5)
-    ws.cell(row=footer_row + 1, column=1, value="(Ký và ghi rõ họ tên)").font = font_13
-    ws.cell(row=footer_row + 1, column=1).alignment = center_alignment
+    # Remarks
+    remarks_row = footer_start + 3
+    ws.merge_cells(start_row=remarks_row, start_column=1, end_row=remarks_row, end_column=14)
+    ws.cell(row=remarks_row, column=1, value="Lưu ý: Không đổi trả sản phẩm mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = font_13_bold
+    ws.cell(row=remarks_row, column=1).alignment = left_alignment
 
-    ws.merge_cells(start_row=footer_row + 1, start_column=6, end_row=footer_row + 1, end_column=10)
-    ws.cell(row=footer_row + 1, column=6, value="(Ký và ghi rõ họ tên)").font = font_13
-    ws.cell(row=footer_row + 1, column=6).alignment = center_alignment
-
-    ws.merge_cells(start_row=footer_row + 1, start_column=11, end_row=footer_row + 1, end_column=14)
-    ws.cell(row=footer_row + 1, column=11, value="(Ký và ghi rõ họ tên)").font = font_13
-    ws.cell(row=footer_row + 1, column=11).alignment = center_alignment
-
-    # Notes
-    notes_row = footer_row + 1 + 3
-    ws.merge_cells(start_row=notes_row, start_column=1, end_row=notes_row, end_column=14)
-    ws.cell(row=notes_row, column=1, value="Lưu ý: Không đổi trả sản phẩm mẫu trừ trường hợp sản phẩm bị lỗi từ nhà sản xuất").font = font_13_bold
-    ws.cell(row=notes_row, column=1).alignment = left_alignment
-
-    ws.merge_cells(start_row=notes_row + 1, start_column=1, end_row=notes_row + 1, end_column=14)
-    ws.cell(row=notes_row + 1, column=1, value="Hình thức thanh toán:").font = font_13_bold
-    ws.cell(row=notes_row + 1, column=1).alignment = left_alignment
-
-    ws.merge_cells(start_row=notes_row + 2, start_column=1, end_row=notes_row + 2, end_column=14)
-    ws.cell(row=notes_row + 2, column=1, value="- Thanh toán 100% giá trị đơn hàng khi nhận được hàng").font = font_13
-    ws.cell(row=notes_row + 2, column=1).alignment = left_alignment
-
-    ws.merge_cells(start_row=notes_row + 3, start_column=1, end_row=notes_row + 3, end_column=14)
-    ws.cell(row=notes_row + 3, column=1, value="- Đặt hàng đặt cọc trước 30% giá trị đơn hàng").font = font_13
-    ws.cell(row=notes_row + 3, column=1).alignment = left_alignment
-
-    # Set Column Widths
+    # Column Widths
     column_widths = {
-        "A": 12,
-        "B": 20, "C": 5, "D": 5, "E": 15, "F": 5,
-        "G": 15,
-        "H": 8,
-        "I": 15,
-        "J": 8,
-        "K": 10,
-        "L": 15,
-        "M": 10,
-        "N": 12
+        "A": 12, "B": 20, "C": 5, "D": 5,
+        "E": 15, "F": 5, "G": 15, "H": 8,
+        "I": 15, "J": 8, "K": 10, "L": 15,
+        "M": 10, "N": 12
     }
     for col, width in column_widths.items():
         ws.column_dimensions[col].width = width
@@ -337,7 +304,7 @@ def export_excel_api(quotation_name):
         frappe.local.response.filecontent = output.read()
         frappe.local.response.type = "binary"
     except Exception as e:
-        frappe.throw(f"Failed to generate Excel file: {str(e)}")
+        frappe.throw(f"Failed to generate Excel file: {e}")
     finally:
         for temp_file in temp_files:
             try:
