@@ -2,11 +2,14 @@
 
 from erpnext.selling.doctype.sales_order.sales_order import SalesOrder as _SalesOrder
 
-def disable_commission_validation(doc, method):
-    # Override method validate_sales_team trên instance để no-op
+def disable_commission_validation(doc, method=None, *args, **kwargs):
+    """
+    Called via doc_events before_validate.
+    We override the instance method so that validate_sales_team() is a no-op.
+    """
     doc.validate_sales_team = lambda: None
 
 class SalesOrder(_SalesOrder):
     def validate_sales_team(self):
-        # Ghi đè hoàn toàn ở class level, no-op
+        # completely skip the 100% check
         return
