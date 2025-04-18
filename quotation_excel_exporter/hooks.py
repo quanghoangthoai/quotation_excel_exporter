@@ -9,4 +9,5 @@ app_license = "MIT"
 
 override_doctype_class = {
     "Quotation": "quotation_excel_exporter.overrides.Quotation"
+    "Sales Order": "quotation_excel_exporter.overrides.SalesOrder"
 }
