@@ -7,10 +7,6 @@ app_description = "Export quotations to Excel using template"
 app_email = "you@example.com"
 app_license = "MIT"
 
-override_doctype_class = {
-    "Sales Order": "quotation_excel_exporter.overrides.SalesOrder",
-}
-
 doc_events = {
     "Sales Order": {
         "before_validate": "quotation_excel_exporter.overrides.disable_commission_validation"
