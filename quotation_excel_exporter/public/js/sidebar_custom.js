@@ -29,5 +29,26 @@ frappe.ui.Sidebar.prototype.setup_sidebar = (function(orig) {
          $sb.find('.dropdown-icon')
             .toggleClass('caret-down caret-right');
        });
+
+    // === XỬ LÝ CLICK VÀO MENU CHA ===
+    $sb.find('.sidebar-menu .has-submenu > a').on('click', function(e) {
+      e.preventDefault();
+      const $parent = $(this).parent();
+      const $collapse = $parent.children('.collapse');
+      
+      // Toggle submenu
+      $collapse.slideToggle(200);
+      $parent.toggleClass('open');
+      
+      // Update icon
+      $(this).find('.dropdown-icon')
+        .toggleClass('caret-down caret-right');
+    });
+
+    // === XỬ LÝ TRẠNG THÁI BAN ĐẦU ===
+    // Đảm bảo tất cả submenu đều hiển thị khi mới load
+    $sb.find('.sidebar-menu .has-submenu > .collapse').show();
+    $sb.find('.sidebar-menu .has-submenu').addClass('open');
+    $sb.find('.dropdown-icon').addClass('caret-down').removeClass('caret-right');
   };
 })(frappe.ui.Sidebar.prototype.setup_sidebar);
