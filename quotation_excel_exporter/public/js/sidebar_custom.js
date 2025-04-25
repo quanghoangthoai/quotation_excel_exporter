@@ -1,5 +1,14 @@
 $(document).ready(function() {
   console.log('▶ sidebar_custom.js loaded');
+// Kiểm tra ollapse (thẻ <ul class="collapse">)
+const collapses = document.querySelectorAll('.sidebar-menu .collapse');
+console.log('collapse count:', collapses.length, collapses);
+// Kiểm tra các mục cha có submenu
+const parents = document.querySelectorAll('.sidebar-menu .has-submenu');
+console.log('has-submenu count:', parents.length, parents);
+// Kiểm tra icon mũi tên
+const icons = document.querySelectorAll('.sidebar-menu .dropdown-icon');
+console.log('dropdown-icon count:', icons.length, icons);
 
   // 1️⃣ Hàm mở tất cả submenu (ERPNext v15+)
   function expandAll() {
