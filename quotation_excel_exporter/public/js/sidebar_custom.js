@@ -1,8 +1,22 @@
-// public/js/sidebar_custom.js
 $(document).ready(function() {
   console.log('▶ sidebar_custom.js loaded');
 
-  // 1️⃣ Hàm đóng tất cả submenu (ERPNext v15+)
+  // 1️⃣ Hàm mở tất cả submenu (ERPNext v15+)
+  function expandAll() {
+    $('.sidebar-menu .has-submenu')
+      .addClass('open')
+      .children('.collapse')
+        .addClass('show')
+        .css('display', 'block')
+      .end()
+      .children('a')
+        .attr('aria-expanded', 'true')
+        .find('.dropdown-icon')
+          .removeClass('caret-right')
+          .addClass('caret-down');
+  }
+
+  // 2️⃣ Hàm đóng tất cả submenu
   function collapseAll() {
     $('.sidebar-menu .has-submenu')
       .removeClass('open')
@@ -17,13 +31,8 @@ $(document).ready(function() {
           .removeClass('caret-down');
   }
 
-  // 2️⃣ Chạy lần đầu khi load Desk
-  collapseAll();
-
-  // 3️⃣ Mỗi khi chuyển page/module thì đóng lại
-  $(document).on('page-change', function() {
-    setTimeout(collapseAll, 200);
-  });
+  // 3️⃣ Chạy lần đầu khi load Desk: Mở tất cả
+  expandAll();
 
   // 4️⃣ Xử lý click vào menu cha
   $('.sidebar-menu').on('click', '.has-submenu > a', function(e) {
@@ -60,5 +69,10 @@ $(document).ready(function() {
         $submenu.find('> a').attr('aria-expanded', 'true');
       }
     });
+  });
+
+  // 6️⃣ (Tùy chọn) Nếu muốn áp dụng lại trạng thái mặc định (mở tất cả) sau khi chuyển trang
+  $(document).on('page-change', function() {
+    setTimeout(expandAll, 200);
   });
 });
