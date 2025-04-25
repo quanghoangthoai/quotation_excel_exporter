@@ -1,9 +1,9 @@
 // public/js/sidebar_custom.js
-frappe.ready(() => {
+$(document).ready(function() {
   console.log('▶ sidebar_custom.js loaded');
 
-  // Hàm mở tất cả submenu (ERPNext v15+)
-  const expandAll = () => {
+  // 1️⃣ Hàm mở cứng tất cả submenu (ERPNext v15+)
+  function expandAll() {
     $('.sidebar-menu .has-submenu')
       .addClass('open')
       .children('.collapse')
@@ -15,23 +15,22 @@ frappe.ready(() => {
         .find('.dropdown-icon')
           .removeClass('caret-right')
           .addClass('caret-down');
-  };
+  }
 
-  // Chạy ngay lần đầu
+  // 2️⃣ Chạy lần đầu khi load Desk
   expandAll();
 
-  // Mỗi khi chuyển module/page
-  $(document).on('page-change', () => {
+  // 3️⃣ Mỗi khi chuyển page/module thì bung lại
+  $(document).on('page-change', function() {
     setTimeout(expandAll, 200);
   });
 
-  // (Tuỳ chọn) Giữ nút collapse sidebar vẫn gập submenu được
-  $('.sidebar-toggle').off('click.sidebarCustom').on('click.sidebarCustom', () => {
-    $('.sidebar-menu .has-submenu > .collapse')
-      .slideToggle(200);
-    $('.sidebar-menu .has-submenu')
-      .toggleClass('open');
-    $('.dropdown-icon')
-      .toggleClass('caret-down caret-right');
-  });
+  // 4️⃣ (Tuỳ chọn) Giữ sidebar-toggle vẫn gập submenu được
+  $('.sidebar-toggle')
+    .off('click.sidebarCustom')
+    .on('click.sidebarCustom', function() {
+      $('.sidebar-menu .has-submenu > .collapse').slideToggle(200);
+      $('.sidebar-menu .has-submenu').toggleClass('open');
+      $('.dropdown-icon').toggleClass('caret-down caret-right');
+    });
 });
