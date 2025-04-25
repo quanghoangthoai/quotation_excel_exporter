@@ -69,10 +69,33 @@ $(document).ready(function() {
         $submenu.find('> a').attr('aria-expanded', 'true');
       }
     });
+
+    // Trigger a window resize event after the animation completes
+    setTimeout(() => {
+      $(window).trigger('resize');
+    }, 200);
   });
 
-  // 6️⃣ (Tùy chọn) Nếu muốn áp dụng lại trạng thái mặc định (mở tất cả) sau khi chuyển trang
+  // 6️⃣ Xử lý page-change
   $(document).on('page-change', function() {
-    setTimeout(expandAll, 200);
+    setTimeout(() => {
+      expandAll();
+      $(window).trigger('resize'); // Trigger resize to ensure charts update
+    }, 200);
+  });
+
+  // 7️⃣ Debounce resize events to prevent chart redraw issues
+  let resizeTimeout;
+  $(window).on('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      // Ensure charts are updated only if their container is visible
+      $('.chart-container canvas').each(function() {
+        const canvas = $(this)[0];
+        if (canvas.offsetParent !== null && canvas.chart) {
+          canvas.chart.resize();
+        }
+      });
+    }, 100);
   });
 });
