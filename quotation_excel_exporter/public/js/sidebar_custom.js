@@ -1,81 +1,81 @@
 $(document).ready(function() {
   console.log('▶ sidebar_custom.js loaded');
-// Kiểm tra ollapse (thẻ <ul class="collapse">)
-const collapses = document.querySelectorAll('.sidebar-menu .collapse');
+// Check collapse elements
+const collapses = document.querySelectorAll('.desk-sidebar .sidebar-item-container');
 console.log('collapse count:', collapses.length, collapses);
-// Kiểm tra các mục cha có submenu
-const parents = document.querySelectorAll('.sidebar-menu .has-submenu');
+// Check parent items with submenu
+const parents = document.querySelectorAll('.desk-sidebar .sidebar-item-container');
 console.log('has-submenu count:', parents.length, parents);
-// Kiểm tra icon mũi tên
-const icons = document.querySelectorAll('.sidebar-menu .dropdown-icon');
+// Check dropdown icons
+const icons = document.querySelectorAll('.desk-sidebar .sidebar-item-icon');
 console.log('dropdown-icon count:', icons.length, icons);
 
-  // 1️⃣ Hàm mở tất cả submenu (ERPNext v15+)
+  // 1️⃣ Function to expand all submenus (ERPNext v15+)
   function expandAll() {
-    $('.sidebar-menu .has-submenu')
-      .addClass('open')
-      .children('.collapse')
+    $('.desk-sidebar .sidebar-item-container')
+      .addClass('show')
+      .children('.sidebar-item-container')
         .addClass('show')
         .css('display', 'block')
       .end()
-      .children('a')
+      .children('.sidebar-item')
         .attr('aria-expanded', 'true')
-        .find('.dropdown-icon')
-          .removeClass('caret-right')
-          .addClass('caret-down');
+        .find('.sidebar-item-icon')
+          .removeClass('sidebar-item-icon-right')
+          .addClass('sidebar-item-icon-down');
   }
 
-  // 2️⃣ Hàm đóng tất cả submenu
+  // 2️⃣ Function to collapse all submenus
   function collapseAll() {
-    $('.sidebar-menu .has-submenu')
-      .removeClass('open')
-      .children('.collapse')
+    $('.desk-sidebar .sidebar-item-container')
+      .removeClass('show')
+      .children('.sidebar-item-container')
         .removeClass('show')
         .css('display', 'none')
       .end()
-      .children('a')
+      .children('.sidebar-item')
         .attr('aria-expanded', 'false')
-        .find('.dropdown-icon')
-          .addClass('caret-right')
-          .removeClass('caret-down');
+        .find('.sidebar-item-icon')
+          .addClass('sidebar-item-icon-right')
+          .removeClass('sidebar-item-icon-down');
   }
 
-  // 3️⃣ Chạy lần đầu khi load Desk: Mở tất cả
+  // 3️⃣ Run on initial Desk load: Expand all
   expandAll();
 
-  // 4️⃣ Xử lý click vào menu cha
-  $('.sidebar-menu').on('click', '.has-submenu > a', function(e) {
+  // 4️⃣ Handle parent menu click
+  $('.desk-sidebar').on('click', '.sidebar-item-container > .sidebar-item', function(e) {
     e.preventDefault();
     const $parent = $(this).parent();
-    const $collapse = $parent.children('.collapse');
-    const $icon = $(this).find('.dropdown-icon');
+    const $collapse = $parent.children('.sidebar-item-container');
+    const $icon = $(this).find('.sidebar-item-icon');
     
     $collapse.slideToggle(200);
-    $parent.toggleClass('open');
-    $icon.toggleClass('caret-down caret-right');
-    $(this).attr('aria-expanded', $parent.hasClass('open'));
+    $parent.toggleClass('show');
+    $icon.toggleClass('sidebar-item-icon-down sidebar-item-icon-right');
+    $(this).attr('aria-expanded', $parent.hasClass('show'));
   });
 
-  // 5️⃣ Xử lý nút collapse
+  // 5️⃣ Handle collapse button
   $('.sidebar-toggle').on('click', function() {
-    const $submenus = $('.sidebar-menu .has-submenu');
-    const isAnyOpen = $submenus.filter('.open').length > 0;
+    const $submenus = $('.desk-sidebar .sidebar-item-container');
+    const isAnyOpen = $submenus.filter('.show').length > 0;
     
     $submenus.each(function() {
       const $submenu = $(this);
-      const $collapse = $submenu.children('.collapse');
-      const $icon = $submenu.find('> a .dropdown-icon');
+      const $collapse = $submenu.children('.sidebar-item-container');
+      const $icon = $submenu.find('> .sidebar-item .sidebar-item-icon');
       
       if (isAnyOpen) {
-        $submenu.removeClass('open');
+        $submenu.removeClass('show');
         $collapse.slideUp(200);
-        $icon.removeClass('caret-down').addClass('caret-right');
-        $submenu.find('> a').attr('aria-expanded', 'false');
+        $icon.removeClass('sidebar-item-icon-down').addClass('sidebar-item-icon-right');
+        $submenu.find('> .sidebar-item').attr('aria-expanded', 'false');
       } else {
-        $submenu.addClass('open');
+        $submenu.addClass('show');
         $collapse.slideDown(200);
-        $icon.removeClass('caret-right').addClass('caret-down');
-        $submenu.find('> a').attr('aria-expanded', 'true');
+        $icon.removeClass('sidebar-item-icon-right').addClass('sidebar-item-icon-down');
+        $submenu.find('> .sidebar-item').attr('aria-expanded', 'true');
       }
     });
 
@@ -85,7 +85,7 @@ console.log('dropdown-icon count:', icons.length, icons);
     }, 200);
   });
 
-  // 6️⃣ Xử lý page-change
+  // 6️⃣ Handle page-change
   $(document).on('page-change', function() {
     setTimeout(() => {
       expandAll();
