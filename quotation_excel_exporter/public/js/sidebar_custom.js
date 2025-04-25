@@ -6,14 +6,15 @@ frappe.ui.Sidebar.prototype.setup_sidebar = (function(orig) {
 
     const $sb = this.$sidebar;
 
-    // === MỞ CỨNG TẤT CẢ MENU CON (v15+) ===
+    // === THIẾT LẬP TRẠNG THÁI BAN ĐẦU - ẨN TẤT CẢ SUBMENU ===
     $sb.find('.sidebar-menu .has-submenu')
-       .addClass('open')
-       .children('.collapse').addClass('show')
-       .siblings('a').attr('aria-expanded', 'true')
+       .removeClass('open')
+       .children('.collapse').removeClass('show')
+       .hide()
+       .siblings('a').attr('aria-expanded', 'false')
        .find('.dropdown-icon')
-         .removeClass('caret-right')
-         .addClass('caret-down');
+         .addClass('caret-right')
+         .removeClass('caret-down');
 
     // === BIND LẠI NÚT COLLAPSE (sidebar-toggle) ===
     $sb.find('.sidebar-toggle')
@@ -43,12 +44,9 @@ frappe.ui.Sidebar.prototype.setup_sidebar = (function(orig) {
       // Update icon
       $(this).find('.dropdown-icon')
         .toggleClass('caret-down caret-right');
+      $(this).attr('aria-expanded', function(i, attr) {
+        return attr === 'true' ? 'false' : 'true';
+      });
     });
-
-    // === XỬ LÝ TRẠNG THÁI BAN ĐẦU ===
-    // Đảm bảo tất cả submenu đều hiển thị khi mới load
-    $sb.find('.sidebar-menu .has-submenu > .collapse').show();
-    $sb.find('.sidebar-menu .has-submenu').addClass('open');
-    $sb.find('.dropdown-icon').addClass('caret-down').removeClass('caret-right');
   };
 })(frappe.ui.Sidebar.prototype.setup_sidebar);
