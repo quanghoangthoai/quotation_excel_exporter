@@ -5,6 +5,5 @@ app_description = "Export quotations to Excel using template"
 app_email = "you@example.com"
 app_license = "MIT"
 
-# Correct path for Frappe asset serving
-app_include_js = "/assets/quotation_excel_exporter/js/sidebar_custom.js"
+
 
