@@ -2,35 +2,63 @@
 $(document).ready(function() {
   console.log('▶ sidebar_custom.js loaded');
 
-  // 1️⃣ Hàm mở cứng tất cả submenu (ERPNext v15+)
-  function expandAll() {
+  // 1️⃣ Hàm đóng tất cả submenu (ERPNext v15+)
+  function collapseAll() {
     $('.sidebar-menu .has-submenu')
-      .addClass('open')
+      .removeClass('open')
       .children('.collapse')
-        .addClass('show')
-        .css('display', 'block')
+        .removeClass('show')
+        .css('display', 'none')
       .end()
       .children('a')
-        .attr('aria-expanded', 'true')
+        .attr('aria-expanded', 'false')
         .find('.dropdown-icon')
-          .removeClass('caret-right')
-          .addClass('caret-down');
+          .addClass('caret-right')
+          .removeClass('caret-down');
   }
 
   // 2️⃣ Chạy lần đầu khi load Desk
-  expandAll();
+  collapseAll();
 
-  // 3️⃣ Mỗi khi chuyển page/module thì bung lại
+  // 3️⃣ Mỗi khi chuyển page/module thì đóng lại
   $(document).on('page-change', function() {
-    setTimeout(expandAll, 200);
+    setTimeout(collapseAll, 200);
   });
 
-  // 4️⃣ (Tuỳ chọn) Giữ sidebar-toggle vẫn gập submenu được
-  $('.sidebar-toggle')
-    .off('click.sidebarCustom')
-    .on('click.sidebarCustom', function() {
-      $('.sidebar-menu .has-submenu > .collapse').slideToggle(200);
-      $('.sidebar-menu .has-submenu').toggleClass('open');
-      $('.dropdown-icon').toggleClass('caret-down caret-right');
+  // 4️⃣ Xử lý click vào menu cha
+  $('.sidebar-menu').on('click', '.has-submenu > a', function(e) {
+    e.preventDefault();
+    const $parent = $(this).parent();
+    const $collapse = $parent.children('.collapse');
+    const $icon = $(this).find('.dropdown-icon');
+    
+    $collapse.slideToggle(200);
+    $parent.toggleClass('open');
+    $icon.toggleClass('caret-down caret-right');
+    $(this).attr('aria-expanded', $parent.hasClass('open'));
+  });
+
+  // 5️⃣ Xử lý nút collapse
+  $('.sidebar-toggle').on('click', function() {
+    const $submenus = $('.sidebar-menu .has-submenu');
+    const isAnyOpen = $submenus.filter('.open').length > 0;
+    
+    $submenus.each(function() {
+      const $submenu = $(this);
+      const $collapse = $submenu.children('.collapse');
+      const $icon = $submenu.find('> a .dropdown-icon');
+      
+      if (isAnyOpen) {
+        $submenu.removeClass('open');
+        $collapse.slideUp(200);
+        $icon.removeClass('caret-down').addClass('caret-right');
+        $submenu.find('> a').attr('aria-expanded', 'false');
+      } else {
+        $submenu.addClass('open');
+        $collapse.slideDown(200);
+        $icon.removeClass('caret-right').addClass('caret-down');
+        $submenu.find('> a').attr('aria-expanded', 'true');
+      }
     });
+  });
 });
