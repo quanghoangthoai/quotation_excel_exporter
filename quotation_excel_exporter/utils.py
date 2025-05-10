@@ -14,12 +14,41 @@ def export_excel_api(quotation_name):
     if not quotation_name or not frappe.db.exists("Quotation", quotation_name):
         frappe.throw("Invalid or non-existent Quotation")
 
-    # Fetch Quotation and Customer
-    quotation = frappe.get_doc("Quotation", quotation_name)
+    # Fetch Quotation with ignore_mandatory to bypass validation
+    quotation = frappe.get_doc("Quotation", quotation_name, ignore_mandatory=True)
+
+    # Ensure the Quotation has a company field set
+    if not quotation.get("company"):
+        # Create a default company if none exists
+        default_company = frappe.get_list("Company", filters={"company_name": "Default Company"})
+        if not default_company:
+            new_company = frappe.get_doc({
+                "doctype": "Company",
+                "company_name": "Default Company",
+                "default_currency": "VND",
+                "country": "Vietnam",
+                "address_line1": "Default Address",
+                "city": "Default City",
+                "country": "Vietnam",
+                "company_logo": "/files/default_logo.jpg" if os.path.exists(frappe.get_site_path("public", "files", "default_logo.jpg")) else None
+            })
+            new_company.insert(ignore_permissions=True)
+            default_company = new_company.name
+        else:
+            default_company = default_company[0].name
+
+        # Assign the default company to the Quotation
+        quotation.company = default_company
+        quotation.save(ignore_permissions=True)
+        frappe.db.commit()
+        # Reload the quotation to ensure all fields are updated
+        quotation = frappe.get_doc("Quotation", quotation_name)
+
+    # Fetch Customer
     customer = frappe.get_doc("Customer", quotation.party_name) if quotation.party_name else None
 
-    # Fetch Company Details
-    company = frappe.get_doc("Company", frappe.defaults.get_user_default("company"))
+    # Fetch Company Details from Quotation's company
+    company = frappe.get_doc("Company", quotation.company)
     # Fetch company address via Dynamic Link
     address_name = frappe.db.get_value(
         "Dynamic Link",
