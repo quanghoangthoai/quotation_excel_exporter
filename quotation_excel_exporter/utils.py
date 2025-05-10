@@ -67,10 +67,12 @@ def export_excel_api(quotation_name):
     currency_format = '#,##0_₫'
 
     # Logo (Optional)
-    logo_path = company_details["logo"]
-    if logo_path and os.path.exists(logo_path):
+logo_path = company_details["logo"]
+if logo_path and logo_path.startswith("/files/"):
+    absolute_logo_path = frappe.get_site_path("public", logo_path.lstrip("/"))
+    if os.path.exists(absolute_logo_path):
         try:
-            logo_img = XLImage(logo_path)
+            logo_img = XLImage(absolute_logo_path)
             logo_img.width = 202
             logo_img.height = 60
             ws.add_image(logo_img, "A1")
@@ -83,6 +85,7 @@ def export_excel_api(quotation_name):
                 message=f"Failed to add logo: {e}",
                 title="Excel Exporter Logo Error"
             )
+
 
     # Company Details
     ws.merge_cells("D2:H3")
