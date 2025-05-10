@@ -18,6 +18,16 @@ def export_excel_api(quotation_name):
     quotation = frappe.get_doc("Quotation", quotation_name)
     customer = frappe.get_doc("Customer", quotation.party_name) if quotation.party_name else None
 
+    # Fetch Company Details
+    company = frappe.get_doc("Company", frappe.defaults.get_user_default("company"))
+    company_details = {
+        "name": company.company_name or "",
+        "address":company.get("address_line1") or "",
+        "phone_no": company.phone_no or "",
+        "website": company.website or "",
+        "logo": company.get("company_logo") or frappe.get_site_path("public", "files", "default_logo.jpg")
+    }
+
     # Initialize Workbook
     wb = Workbook()
     ws = wb.active
@@ -40,7 +50,7 @@ def export_excel_api(quotation_name):
     currency_format = '#,##0_₫'
 
     # Logo (Optional)
-    logo_path = frappe.get_site_path("public", "files", "z6473642459612_58e86d169bb72c78b360392b4f81e8bae2152f.jpg")
+    logo_path = company_details["logo"]
     if os.path.exists(logo_path):
         try:
             logo_img = XLImage(logo_path)
@@ -59,22 +69,22 @@ def export_excel_api(quotation_name):
 
     # Company Details
     ws.merge_cells("D2:H3")
-    ws["D2"] = "CÔNG TY PHÁT TRIỂN THƯƠNG MẠI THẾ KỶ"
+    ws["D2"] = company_details["name"]
     ws["D2"].font = font_18
     ws["D2"].alignment = center_alignment
 
     ws.merge_cells("A5:B5")
     ws["A5"] = "Địa chỉ:"
     ws.merge_cells("C5:N5")
-    ws["C5"] = "Số 30 đường 16, KĐT Đông Tăng Long, TP Thủ Đức, HCM"
+    ws["C5"] = company_details["address"]
     ws.merge_cells("A6:B6")
     ws["A6"] = "Hotline:"
     ws.merge_cells("C6:N6")
-    ws["C6"] = "0768.927.526 - 033.566.9526"
+    ws["C6"] = company_details["phone_no"]
     ws.merge_cells("A7:B7")
     ws["A7"] = "Website:"
     ws.merge_cells("C7:N7")
-    ws["C7"] = "https://thehome.com.vn/"
+    ws["C7"] = company_details["website"]
 
     for cell in ["A5", "A6", "A7", "C5", "C6", "C7"]:
         ws[cell].font = font_13
@@ -195,6 +205,7 @@ def export_excel_api(quotation_name):
                     img = XLImage(image_path)
                     img.width = 140
                     img.height = 90
+                    ws.merge_cells(f"I{row}:J{row}")  # Merge I and J columns for the image
                     ws.add_image(img, f"I{row}")
                     ws.row_dimensions[row].height = 100
             except Exception as e:
@@ -254,7 +265,7 @@ def export_excel_api(quotation_name):
     final_cell.number_format = currency_format
     final_cell.font = font_13
     for col in range(1, 15):
-        ws.cell(row=final_row, column=col).border = thin_border
+        wsapétiyws.cell(row=final_row, column=col).border = thin_border
 
     for r in range(total_row, final_row + 1):
         ws.cell(row=r, column=1).alignment = left_alignment if r == final_row else center_alignment
@@ -303,8 +314,8 @@ def export_excel_api(quotation_name):
     column_widths = {
         "A": 12, "B": 20, "C": 5, "D": 5,
         "E": 15, "F": 5, "G": 15, "H": 8,
-        "I": 15, "J": 8, "K": 10, "L": 20,  # Increased for Đơn giá
-        "M": 10, "N": 20  # Increased for Thành tiền, Tổng cộng
+        "I": 15, "J": 8, "K": 10, "L": 20,
+        "M": 10, "N": 20
     }
     for col, width in column_widths.items():
         ws.column_dimensions[col].width = width
