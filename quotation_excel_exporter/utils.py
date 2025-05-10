@@ -189,7 +189,7 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=1, value=idx).font = font_13
         ws.merge_cells(f"B{row}:D{row}")
         ws.cell(row=row, column=2, value=item.item_name or "").font = font_13
-        ws.merge_cells(f"E{row}:F lumped_row}")
+        ws.merge_cells(f"E{row}:F{row}")
         ws.cell(row=row, column=5, value=frappe.db.get_value("Quotation Item", item.name, "size") or "").font = font_13
         ws.cell(row=row, column=7, value=item.item_code or "").font = font_13
         ws.cell(row=row, column=8, value=item.qty or 0).font = font_13
