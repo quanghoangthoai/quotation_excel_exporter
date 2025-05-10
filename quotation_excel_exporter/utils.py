@@ -21,10 +21,10 @@ def export_excel_api(quotation_name):
     # Fetch Company Details
     company = frappe.get_doc("Company", frappe.defaults.get_user_default("company"))
     company_details = {
-        "name": company.company_name or "",
-        "address":company.get("address_line1") or "",
-        "phone_no": company.phone_no or "",
-        "website": company.website or "",
+        "name": company.company_name or "Your Company Name",
+        "address": company.get("address_display") or company.get("address_line1") or "Your Address",
+        "phone_no": company.phone_no or "Your Phone Number",
+        "website": company.website or "Your Website",
         "logo": company.get("company_logo") or frappe.get_site_path("public", "files", "default_logo.jpg")
     }
 
@@ -265,7 +265,7 @@ def export_excel_api(quotation_name):
     final_cell.number_format = currency_format
     final_cell.font = font_13
     for col in range(1, 15):
-        wsapétiyws.cell(row=final_row, column=col).border = thin_border
+        ws.cell(row=final_row, column=col).border = thin_border
 
     for r in range(total_row, final_row + 1):
         ws.cell(row=r, column=1).alignment = left_alignment if r == final_row else center_alignment
