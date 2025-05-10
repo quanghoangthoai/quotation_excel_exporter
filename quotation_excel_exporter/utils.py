@@ -37,12 +37,30 @@ def export_excel_api(quotation_name):
         if addr.country:
             address += ", " + addr.country
 
+    # Resolve company logo path
+    logo_path = company.get("company_logo")
+    # Log the raw company_logo value for debugging
+    frappe.log_error(
+        message=f"Raw company_logo value: {logo_path}",
+        title="Debug Company Logo Path"
+    )
+    if logo_path:
+        if logo_path.startswith("/files/"):
+            logo_path = frappe.get_site_path("public", logo_path.lstrip("/"))
+        elif logo_path.startswith("/private/files/"):
+            logo_path = frappe.get_site_path("private", logo_path.lstrip("/private/"))
+        # Log the resolved logo path
+        frappe.log_error(
+            message=f"Resolved logo path: {logo_path}",
+            title="Debug Resolved Logo Path"
+        )
+
     company_details = {
         "name": company.company_name or "Your Company Name",
         "address": address,
         "phone_no": company.phone_no or "Your Phone Number",
         "website": company.website or "Your Website",
-        "logo": company.get("company_logo")  # Use company_logo field directly, no fallback
+        "logo": logo_path
     }
 
     # Initialize Workbook
@@ -67,12 +85,10 @@ def export_excel_api(quotation_name):
     currency_format = '#,##0_₫'
 
     # Logo (Optional)
-logo_path = company_details["logo"]
-if logo_path and logo_path.startswith("/files/"):
-    absolute_logo_path = frappe.get_site_path("public", logo_path.lstrip("/"))
-    if os.path.exists(absolute_logo_path):
+    logo_path = company_details["logo"]
+    if logo_path and os.path.exists(logo_path):
         try:
-            logo_img = XLImage(absolute_logo_path)
+            logo_img = XLImage(logo_path)
             logo_img.width = 202
             logo_img.height = 60
             ws.add_image(logo_img, "A1")
@@ -85,7 +101,16 @@ if logo_path and logo_path.startswith("/files/"):
                 message=f"Failed to add logo: {e}",
                 title="Excel Exporter Logo Error"
             )
-
+    elif logo_path:
+        frappe.log_error(
+            message=f"Logo file not found at {logo_path}",
+            title="Excel Exporter Logo File Missing"
+        )
+    else:
+        frappe.log_error(
+            message=f"No logo set for company {company.name}",
+            title="Excel Exporter Logo Missing"
+        )
 
     # Company Details
     ws.merge_cells("D2:H3")
