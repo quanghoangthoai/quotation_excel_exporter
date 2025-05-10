@@ -20,12 +20,29 @@ def export_excel_api(quotation_name):
 
     # Fetch Company Details
     company = frappe.get_doc("Company", frappe.defaults.get_user_default("company"))
+    # Fetch company address via Dynamic Link
+    address_name = frappe.db.get_value(
+        "Dynamic Link",
+        {"link_doctype": "Company", "link_name": company.name, "parenttype": "Address"},
+        "parent"
+    )
+    address = "Your Address"
+    if address_name:
+        addr = frappe.get_doc("Address", address_name)
+        address = addr.address_line1 or ""
+        if addr.address_line2:
+            address += ", " + addr.address_line2
+        if addr.city:
+            address += ", " + addr.city
+        if addr.country:
+            address += ", " + addr.country
+
     company_details = {
         "name": company.company_name or "Your Company Name",
-        "address": company.get("address_display") or company.get("address_line1") or "Your Address",
+        "address": address,
         "phone_no": company.phone_no or "Your Phone Number",
         "website": company.website or "Your Website",
-        "logo": company.get("company_logo") or frappe.get_site_path("public", "files", "default_logo.jpg")
+        "logo": company.get("company_logo")  # Use company_logo field directly, no fallback
     }
 
     # Initialize Workbook
@@ -51,7 +68,7 @@ def export_excel_api(quotation_name):
 
     # Logo (Optional)
     logo_path = company_details["logo"]
-    if os.path.exists(logo_path):
+    if logo_path and os.path.exists(logo_path):
         try:
             logo_img = XLImage(logo_path)
             logo_img.width = 202
@@ -172,7 +189,7 @@ def export_excel_api(quotation_name):
         ws.cell(row=row, column=1, value=idx).font = font_13
         ws.merge_cells(f"B{row}:D{row}")
         ws.cell(row=row, column=2, value=item.item_name or "").font = font_13
-        ws.merge_cells(f"E{row}:F{row}")
+        ws.merge_cells(f"E{row}:F lumped_row}")
         ws.cell(row=row, column=5, value=frappe.db.get_value("Quotation Item", item.name, "size") or "").font = font_13
         ws.cell(row=row, column=7, value=item.item_code or "").font = font_13
         ws.cell(row=row, column=8, value=item.qty or 0).font = font_13
